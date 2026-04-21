@@ -55,7 +55,6 @@ def add_channel(channelStr: str) -> None:
     channels.append(channelStr)
     # save new list of channels
     save_channels(channels)
-    # end
 # end
 
 

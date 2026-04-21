@@ -1,16 +1,18 @@
 from discord.ext import commands
+from getpass import getpass
 import discord, asyncio, os
 
 
-BOT_TOKEN = ""
+BOT_TOKEN = getpass("Bot token: ")
 CHANNEL_ID = 1488359282859708600
 
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
 async def load_extensions(client: commands.Bot):
-    """Loads all cogs in the cog folder."""
+    """Loads all cogs in the cogs folder."""
 
-    for cog in [file[:-3] for file in os.listdir("cogs")[1:]]:
+    # only load files that end in .py
+    for cog in [file[:-3] for file in os.listdir("cogs") if file.endswith(".py")]:
         await client.load_extension(f"cogs.{cog}")
     # end
 # end
@@ -31,7 +33,7 @@ async def reload(ctx: commands.Context, arg: str=""):
 
     if arg == "":
         # no cog was provided, reload all cogs
-        for cog in [file[:-3] for file in os.listdir("cogs")[1:]]:
+        for cog in [file[:-3] for file in os.listdir("cogs") if file.endswith(".py")]:
             await bot.reload_extension(f"cogs.{cog}")
         # end
 
