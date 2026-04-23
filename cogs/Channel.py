@@ -1,4 +1,5 @@
 from discord.ext import commands
+from pathvalidate import sanitize_filename
 import os
 
 
