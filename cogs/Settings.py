@@ -120,7 +120,7 @@ def update_config(filePath:str, section: str, key: str, value) -> bool:
 
 def get_config(filePath: str, section: str, key: str) -> str | None:
     """
-    Update or create a key-value pair in a given section of an INI file.
+    Gets the config at the given file, section, and key.
 
     Arguments:
         filePath (str): The file path to the config file.
@@ -146,6 +146,79 @@ def get_config(filePath: str, section: str, key: str) -> str | None:
 # end
 
 
+def get_list_config(filePath: str, section: str, key: str) -> list[str] | None:
+    """
+    Gets the list config at the given file, section, and key
+
+    Arguments:
+        filePath (str): The file path to the config file.
+        section (str): The name of the section the given key is located.
+        key (str): The name of the key whose value you want to get.
+
+    Returns:
+        A list of values in the key or none if there was an error reading the file.
+    """
+
+    configs = get_config(filePath=filePath, section=section, key=key)
+
+    # check if the config was read successfully
+    if configs is None:
+        # config was not read successfully
+        return None
+    # end
+
+    # split the config into a string
+    configs = configs.split(",")
+
+    # remove any empty strings
+    configs = [config for config in configs if config != ""]
+
+    return configs
+# end
+
+
+def validate_schema(template: configparser.ConfigParser, fileName: str) -> bool:
+    """
+    Validates the given ini file against the given config object to make sure the schemas match.
+
+    Arguments:
+        template (configparser.ConfigParser): The template config to varify against.
+        fileName (str): The name of the ini file to varify the schema.
+
+    Returns:
+        True if the schemas match or false if they don't match.
+    """
+
+    # check if test file exists
+    if not os.path.exists(fileName):
+        # test file does not exist
+        return False
+    # end
+
+    # import test config file
+    testConfig = configparser.ConfigParser()
+    testConfig.read(fileName)
+
+    # check if all sections match
+    if template.sections() != testConfig.sections():
+        # all sections don't match
+        return False
+    # end
+
+    # check if keys match
+    for section in template.sections():
+        if template[section].keys() != testConfig[section].keys():
+            #  keys for this section don't match match
+            return False
+        # end
+    # end
+
+    # all checks passed
+    # config schemas match
+    return True
+# end
+
+
 class Settings(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -154,7 +227,7 @@ class Settings(commands.Cog):
         self.defaultConfig["PARENT VIDEO PATH"] = {"path": "YouTube"}
         self.defaultConfig["ADMIN"] = {"bot token": "", "admins": ""}
 
-        # if config file doesn't exists create on using template
+        # if config file doesn't exists create one using template
         if not os.path.exists("config.ini"):
             with open("config.ini", "w") as writer:
                 self.defaultConfig.write(writer)
@@ -162,7 +235,7 @@ class Settings(commands.Cog):
         # end
     # end
 
-    async def validate_user_id(self, userId: int) -> bool:
+    async def is_valid_user_id(self, userId: int) -> bool:
         """
         Validates the given discord user ID.
 
@@ -181,13 +254,28 @@ class Settings(commands.Cog):
 
             # the id was valid
             return True
-        except discord.NotFound:
+        except discord.NotFound or discord.HTTPException:
             # the id was not valid
             return False
-        except discord.HTTPException:
-            # there was an error in the fetch process
-            return False
         # end
+    # end
+
+    async def get_user_by_id(self, userId: int) -> discord.User | None:
+        """
+        Fetches a user account by id.
+
+        Arguments:
+            userid (str): The user id of the user you want to get.
+
+        Returns:
+            A discord user object or none if the user is invalid or could not be reached.
+        """
+
+        try:
+            return await self.bot.fetch_user(userId)
+
+        except discord.NotFound or discord.HTTPException:
+            return None
     # end
 
     @commands.group(name="settings", invoke_without_command=True)
@@ -254,15 +342,15 @@ class Settings(commands.Cog):
     # end
 
     @settings.command(name="set")
-    async def settings_set(self, ctx: commands.Context, setting: str | None=None, settingSection: str | None=None, value: str | None=None):
+    async def settings_set(self, ctx: commands.Context, settingSection: str | None=None, setting: str | None=None, value: str | None=None):
         """
         Updates the given setting with the given value.
 
-        Useage: set <option> <value>
+        Useage: set <section> <setting> <value>
 
         Arguments:
-            setting: The name of the setting to change.
             section: The settings section that contains the option you want to change.
+            setting: The name of the setting to change.
             value:  The value to update the setting to.
         """
         
@@ -290,7 +378,7 @@ class Settings(commands.Cog):
         # end
 
         # determine which setting is being changed
-        if setting == "path":
+        if settingSection == "PARENT VIDEO PATH" and setting == "path":
             # user wants to change the parent path where videos are downloaded to
 
             # make sure the given dirpath is valid
@@ -303,7 +391,22 @@ class Settings(commands.Cog):
             # update the path setting
             update_config("config.ini", "PARENT VIDEO PATH", "path", value=value)
 
-            await ctx.send("Parent video file path was updated to " + value)
+            await ctx.send("path was updated to " + value)
+
+        # make sure the user can't edit the admins list through the settings command
+        elif settingSection == "ADMIN" and setting == "admins":
+            # user is trying to update the admins list using the settings command
+
+            # tell the user they need to use the admins command to update the admins list
+            await ctx.send("You can only change this setting using the !admins commands.")
+            return
+
+        else:
+            if update_config("config.ini", settingSection, setting, value=value):
+                await ctx.send(f"{settingSection} {setting} updated to {value}.")
+            else:
+                await ctx.send("Invalid config parameters.")
+            # end
         # end
     # end
 
@@ -338,6 +441,59 @@ class Settings(commands.Cog):
         # await ctx.send(f"```{"\n".join([f"{col1.ljust(max([len(item[0]) for item in data]), ".")} {col2}" for col1, col2 in data])}```")
     # end
 
+    @settings.command(name="export")
+    async def settings_export(self, ctx: commands.Context):
+        """Exports the config file."""
+    
+        # check if the config file exists
+        if not os.path.exists("config.ini"):
+            await ctx.send("Config file could not be found.")
+            return
+        # end
+
+        # send the config file to the user
+        await ctx.author.send(file=discord.File("config.ini"))
+        await ctx.send("Config file was sent in a DM.")
+    # end
+
+    @settings.command(name="import")
+    async def settings_import(self, ctx: commands.Context):
+        """Imports the given config file."""
+    
+        # check if the user uploaded a file
+        if not ctx.message.attachments:
+            # the user did not upload any files
+            await ctx.send_help(ctx.command)
+            return
+        # end
+
+        # try to download the given file
+        try:
+            # open a temp config file
+            with open("temp_config.ini", "wb") as writer:
+                # download first attachment
+                await ctx.message.attachments[0].save(writer)
+            # end
+
+            # check if config schemas match
+            if not validate_schema(self.defaultConfig, "temp_config.ini"):
+                # schemas don't match, reject given config file
+                os.remove("temp_config.ini")
+                await ctx.send("Config schema doesn't match. Setings not imported.")
+                return
+            # end
+
+            # config schemas match. Override config file with given file
+            os.remove("config.ini")
+            os.rename("temp_config.ini", "config.ini")
+
+            await ctx.send("Settings imported.")
+
+        except Exception as e:
+            await ctx.send(f"Failed to save {ctx.message.attachments[0].filename} because of an error: {e}")
+        # end
+    # end
+
     @commands.group(name="admins", invoke_without_command=True)
     async def admins(self, ctx: commands.Context):
         """Handels admin related settings."""
@@ -352,7 +508,7 @@ class Settings(commands.Cog):
         Usage: add <profile>
 
         Arguments:
-            profile: The discord profile or user ID to add to the admins list.
+            profile: A mention or user ID to add to the admins list.
         """
 
         # make sure the user gives a member to add to the admins list
@@ -372,13 +528,13 @@ class Settings(commands.Cog):
             memberId = str(member.id)
 
         # check if the given user is valid
-        if not await self.validate_user_id(int(memberId)):
+        if not await self.is_valid_user_id(int(memberId)):
             await ctx.send(f"{memberName} is not a valid user.")
             return
         # end
 
         # get the current admins list
-        admins = get_config("config.ini", "ADMIN", "admins")
+        admins = get_list_config("config.ini", "ADMIN", "admins")
 
         # make sure config file was read successfully
         if admins is None:
@@ -387,12 +543,7 @@ class Settings(commands.Cog):
             # tell the user the command failed
             await ctx.send(f"Failed to add {memberName} to the admins list. Could not read config file.")
             return
-
-        # parse string from config file
-        admins = admins.split(",")
-
-        # remove empty strings from admin list
-        admins = [item for item in admins if item != ""]
+        # end
 
         # make sure the given member is not a duplicate
         if memberId in admins:
@@ -414,31 +565,98 @@ class Settings(commands.Cog):
             await ctx.send(f"{memberName} has been added to the admins list.")
 
         else:
-            # failed to update the donfig file
+            # failed to update the config file
             await ctx.send(f"Failed to add {memberName} to the admins list.")
             return
         # end
     # end
 
     @admins.command(name="remove")
-    async def admins_remove(self, ctx: commands.Context, member):
+    async def admins_remove(self, ctx: commands.Context, userId: int | None=None):
         """
         Removes a profile from the admins list.
         
-        Usage: remove <profile>
+        Usage: remove <id>
 
         Arguments:
-            profile: The discord profile to remove from the admins list.
+            id: The user id to remove from the admins list.
         """
     
-        pass
+        # check if an id was given
+        if userId is None:
+            await ctx.send_help(ctx.command)
+        # end
+
+        # get the list of admins
+        admins = get_list_config("config.ini", "ADMIN", "admins")
+
+        # check if config was read successfully
+        if admins is None:
+            # config file was not not read
+            await ctx.send("There was an error reading the config file.")
+            return
+        # end
+
+        # check if given id is in the admins list
+        if not str(userId) in admins:
+            # the given user is not on the admins list
+            await ctx.send("This user is not on the admins list.")
+            return
+        # end
+
+        # remove given user form the admins list
+        admins.remove(str(userId))
+        await ctx.send(f"{userId} was removed from the admins list.")
     # end
 
     @admins.command(name="list")
     async def admins_list(self, ctx: commands.Context):
-        """Lists all profiles on the admin list."""
+        """Lists lists everyone on the admin list."""
     
-        pass
+        # get the admins list from config file
+        admins = get_list_config("config.ini", "ADMIN", "admins")
+        # admins is a list of user ids
+
+        # check if admins list was read successfully
+        if admins is None:
+            # config file was not read form successully
+            await ctx.send("There was an error reading the config file.")
+            return
+        # end
+
+        # check if admins list is empty
+        if len(admins) == 0:
+            # the admins list is empty
+
+            # tell the user there are no registered admins
+            await ctx.send("There is no one on the admins list.")
+            return
+        # end
+
+        # fetch the user object of each admin
+        users = [await self.get_user_by_id(int(admin)) for admin in admins]
+        # get the length of the longest user name for formatting
+        colWidth = max([len(user.display_name) for user in users if user is not None])
+
+        # display the list of admins
+        displayString = []
+        for i in range(len(admins)):
+            # declare user variable to make type checker calm down
+            user = users[i]
+
+            # check if user was fetched successfully
+            if user is None:
+                # user was not fetched
+                displayString.append(f"{i} Error fetching user with id: {admins[i]}")
+                continue
+            # end
+
+            # add addmin user information to display string list
+            displayString.append(f"{user.display_name.ljust(colWidth)} ID: {admins[i]}")
+        # end
+
+        # display admins list
+        await ctx.send(f"# Admins\n```{"\n".join(displayString)}```")
     # end
 # end
 
