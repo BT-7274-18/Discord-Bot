@@ -2,8 +2,14 @@ import configparser
 import os
 
 
-def set_function(func):
+def sync(func):
+    """Updates the parser before getting or setting values and writes changes afterwards."""
+
     def wrapper(self, *args, **kwargs):
+        # update the parser
+        self._parser.read("config.ini")
+
+        # call class method
         res = func(self, *args, **kwargs)
 
         # save changes
@@ -11,21 +17,6 @@ def set_function(func):
             self._parser.write(writer)
         # end
 
-        return res
-    # end
-    return wrapper
-# end
-
-
-def get_function(func):
-    def wrapper(self, *args, **kwargs):
-        # update the parser
-        self._parser.read("config.ini")
-
-        # call get function
-        res = func(self, *args, **kwargs)
-
-        # return the result of the get function
         return res
     # end
     return wrapper
@@ -49,40 +40,42 @@ class Config:
         self._parser.read(self.fileName)
     # end
 
+    @sync
     def get_sections(self) -> list[str]:
         return self._parser.sections()
     # end
 
+    @sync
     def get_section_options(self, section: str):
         return self._parser[section].keys()
     # end
     
-    @set_function
+    @sync
     def set_parent_download_path(self, value: str):
         self._parser.set(section=self._parent_video_path, option="path", value=value)
     # end
 
-    @get_function
+    @sync
     def get_parent_download_path(self) -> str:
         return self._parser.get(section=self._parent_video_path, option="path")
     # end
 
-    @set_function
+    @sync
     def set_bot_token(self, value: int):
         self._parser.set(section=self._admin, option="bot token", value=str(value))
     # end
 
-    @get_function
+    @sync
     def get_bot_token(self) -> int:
         return int(self._parser.get(section=self._admin, option="bot token"))
     # end
 
-    @set_function
+    @sync
     def set_admin_list(self, value: list):
         self._parser.set(section=self._admin, option="admins", value=",".join(value))
     # end
     
-    @get_function
+    @sync
     def get_admin_list(self) -> list:
         admins = self._parser.get(section=self._admin, option="admins").split(",")
 
