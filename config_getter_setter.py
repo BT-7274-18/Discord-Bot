@@ -28,8 +28,36 @@ class Config:
         self.fileName = "config.ini"
 
         if not os.path.exists("config.ini"):
-            raise FileNotFoundError
+            raise FileNotFoundError("No config file found.")
         # end
+
+        self._schema = {
+            "PARENT VIDEO PATH":{
+                "aliases": ["PARENT VIDEO PATH"],
+                "keys": {
+                    "path": {
+                        "aliases": ["path"],
+                        "set function": self.set_parent_download_path,
+                        "get function": self.get_parent_download_path
+                    }
+                }
+            },
+            "ADMIN": {
+                "aliases": ["ADMIN"],
+                "keys": {
+                    "bot token": {
+                        "aliases": ["bot token"],
+                        "set function": self.set_bot_token,
+                        "get function": self.get_bot_token,
+                    },
+                    "admins": {
+                        "aliases": ["admins"],
+                        "set function": self.set_admin_list,
+                        "get function": self.get_admin_list
+                    }
+                }
+            }
+        }
 
         # stroing section names in attribute so they can be easily changed 
         # and renamed later if needed
@@ -41,6 +69,68 @@ class Config:
     # end
 
     @sync
+    def get_setting(self, section: str, setting: str) -> str:
+        """
+        Get's the value at the given section setting pair.
+
+        Arguments:
+            section (str): The name of the section that contains the given setting.
+            setting (str): The name of the setting you want the value of.
+
+        Returns:
+            The value at the given section setting pair.
+
+        Raises:
+            KeyError if the given section or setting names are not in the config file.
+        """
+
+        # check if given section is valid
+        if section not in self._parser.sections():
+            # given section is not valid
+            raise KeyError("Invalid section.")
+        # end
+
+        # check if given key is valid
+        if setting not in self._parser[section].keys():
+            # given key is not valid
+            raise KeyError("Invalid setting.")
+        # end
+
+        # section and key are valid
+        return self._parser.get(section=section, option=setting)
+    # end
+
+    @sync
+    def set_setting(self, section: str, setting: str, value: str):
+        """
+        Updates a value at the given section setting pair.
+
+        Arguments:
+            section (str): The name of the section that contains the setting you want to update.
+            setting (str): The name of the setting you want to update.
+            value (str): The value you want to change the given setting to.
+
+        Raises:
+            KeyError if the given section or setting names are not in the config file.
+        """
+
+        # check if given section if valid
+        if not section in self._parser.sections():
+            # given section is not valid
+            raise KeyError("Invalid section.")
+        # end
+
+        # check if given setting is valid
+        if not setting in self._parser[section].keys():
+            # given setting is not valid
+            raise KeyError("Invalid setting.")
+        # end
+
+        # section and setting pair is valid
+        self._parser.set(section=section, option=setting, value=value)
+    # end
+
+    @sync
     def get_sections(self) -> list[str]:
         return self._parser.sections()
     # end
@@ -48,6 +138,11 @@ class Config:
     @sync
     def get_section_options(self, section: str):
         return self._parser[section].keys()
+    # end
+
+    @sync
+    def get_all_options(self) -> list[str]:
+        return [option for section in self._parser.sections() for option in self._parser[section].keys()]
     # end
     
     @sync
@@ -71,16 +166,16 @@ class Config:
     # end
 
     @sync
-    def set_admin_list(self, value: list):
-        self._parser.set(section=self._admin, option="admins", value=",".join(value))
+    def set_admin_list(self, value: list[int]):
+        self._parser.set(section=self._admin, option="admins", value=",".join(str(value)))
     # end
     
     @sync
-    def get_admin_list(self) -> list:
+    def get_admin_list(self) -> list[int]:
         admins = self._parser.get(section=self._admin, option="admins").split(",")
 
-        # remove empty strings incase option is empty
-        admins = [admin for admin in admins if admin != ""]
+        # remove empty strings and convert non-empty strings to integers
+        admins = [int(admin) for admin in admins if admin != ""]
 
         return admins
     # end    
@@ -89,4 +184,6 @@ class Config:
 
 if __name__ == "__main__":
     config = Config()
+
+    print(config.get_all_options())
 # end

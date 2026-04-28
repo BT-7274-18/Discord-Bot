@@ -1,7 +1,7 @@
 from discord.ext import commands
 import discord
 from asyncio import TimeoutError
-from typing import Any
+from config_getter_setter import Config
 from pathvalidate import sanitize_filepath
 import configparser, os
 
@@ -227,6 +227,8 @@ class Settings(commands.Cog):
         self.defaultConfig["PARENT VIDEO PATH"] = {"path": "YouTube"}
         self.defaultConfig["ADMIN"] = {"bot token": "", "admins": ""}
 
+        self.configs = Config()
+
         # if config file doesn't exists create one using template
         if not os.path.exists("config.ini"):
             with open("config.ini", "w") as writer:
@@ -304,8 +306,8 @@ class Settings(commands.Cog):
                 # the user wants to reset configs
 
                 # make a copies of important settings
-                admins = get_config("config.ini", "ADMIN", "admins")
-                botToken = get_config("config.ini", "ADMIN", "bot token")
+                admins = self.configs.get_admin_list()
+                botToken = self.configs.get_bot_token()
 
                 if admins is None or botToken is None:
                     # admin settings could not be backed up don't reset settings
@@ -315,8 +317,8 @@ class Settings(commands.Cog):
                 # end
 
                 # add admin settings to default configs
-                self.defaultConfig["ADMIN"]["admins"] = str(admins)
-                self.defaultConfig["ADMIN"]["bot token"] = botToken
+                self.defaultConfig["ADMIN"]["admins"] = ",".join([str(admin) for admin in admins])
+                self.defaultConfig["ADMIN"]["bot token"] = str(botToken)
 
                 # reset the config file
                 with open("config.ini", "w") as writer:
@@ -332,7 +334,7 @@ class Settings(commands.Cog):
                 # user entered somthing other than a yes
 
                 # cancel config reset
-                await ctx.send("Reset canceled")
+                await ctx.send("Reset canceled.")
             # end
 
         except TimeoutError:
@@ -389,9 +391,13 @@ class Settings(commands.Cog):
             # end
 
             # update the path setting
-            update_config("config.ini", "PARENT VIDEO PATH", "path", value=value)
+            self.configs.set_parent_download_path(value=value)
 
             await ctx.send("path was updated to " + value)
+
+        elif settingSection == "ADMIN" and setting == "bot token":
+            # update the bot token setting
+            pass
 
         # make sure the user can't edit the admins list through the settings command
         elif settingSection == "ADMIN" and setting == "admins":
@@ -402,11 +408,7 @@ class Settings(commands.Cog):
             return
 
         else:
-            if update_config("config.ini", settingSection, setting, value=value):
-                await ctx.send(f"{settingSection} {setting} updated to {value}.")
-            else:
-                await ctx.send("Invalid config parameters.")
-            # end
+            await ctx.send("Invalid config parameters.")
         # end
     # end
 
