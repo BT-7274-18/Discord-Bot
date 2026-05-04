@@ -362,18 +362,13 @@ class Settings(commands.Cog):
             await ctx.send_help(ctx.command)
             return
         # end
-        
-        # get a list of config options
-        configOptions = get_config_options("config.ini")
-        # make sure the config file could be reached
-        if configOptions is None:
-            # config file could not be reach
-            await ctx.send("Command not executed. Could not reach config file.")
+
+        if value is None:
             return
         # end
 
         # make sure the given command is valid
-        if not setting in configOptions:
+        if not setting in self.configs.get_sections():
             # given command is not valid
             await ctx.send(f"{setting} is not a valid setting.")
             return
@@ -396,8 +391,12 @@ class Settings(commands.Cog):
             await ctx.send("path was updated to " + value)
 
         elif settingSection == "ADMIN" and setting == "bot token":
+
             # update the bot token setting
-            pass
+            self.configs.set_bot_token(value=value)
+
+            # tell the user the bot token was updated
+            await ctx.send("Bot token was updated.")
 
         # make sure the user can't edit the admins list through the settings command
         elif settingSection == "ADMIN" and setting == "admins":
@@ -417,30 +416,21 @@ class Settings(commands.Cog):
         """Lists available settings."""
 
         configStrings = []
-        configs = get_all_config("config.ini")
-
-        # check if settings file was read successfully
-        if configs is None:
-            await ctx.send("Could not read settings file.")
-            return
-        # end
 
         # get the length of the option with the longest name
-        colWidth = max([len(key) for section in configs.sections() for key in configs[section]])
+        colWidth = max([len(key) for key in self.configs.get_all_option_names()])
 
         # add each section and option to the list to format later
-        for section in configs.sections():
+        for section in self.configs.get_sections():
             # add section title
             configStrings.append(f"[{section}]")
-            for key in configs[section]:
+            for key in self.configs.get_section_options(section=section):
                 # add option value pairs
-                configStrings.append(f"{key.ljust(colWidth)} {configs[section][key]}")
+                configStrings.append(f"{key.ljust(colWidth)} {self.configs.get_setting(section=section, setting=key)}")
                 #                           ^ Format option name so that all option values are aligned
             # end
         # end
         await ctx.send("```\n" + "\n".join(configStrings) + "\n```")
-    
-        # await ctx.send(f"```{"\n".join([f"{col1.ljust(max([len(item[0]) for item in data]), ".")} {col2}" for col1, col2 in data])}```")
     # end
 
     @settings.command(name="export")
@@ -523,11 +513,12 @@ class Settings(commands.Cog):
         memberId = ""
         if isinstance(member, int):
             memberName = str(member)
-            memberId = str(member)
+            memberId = member
 
         else:
             memberName = member.display_name
-            memberId = str(member.id)
+            memberId = member.id
+        # end
 
         # check if the given user is valid
         if not await self.is_valid_user_id(int(memberId)):
@@ -536,16 +527,7 @@ class Settings(commands.Cog):
         # end
 
         # get the current admins list
-        admins = get_list_config("config.ini", "ADMIN", "admins")
-
-        # make sure config file was read successfully
-        if admins is None:
-            # config file was not read successfully
-
-            # tell the user the command failed
-            await ctx.send(f"Failed to add {memberName} to the admins list. Could not read config file.")
-            return
-        # end
+        admins = self.configs.get_admin_list()
 
         # make sure the given member is not a duplicate
         if memberId in admins:
@@ -560,17 +542,10 @@ class Settings(commands.Cog):
         admins.append(memberId)
 
         # update the config changes with the new admins list
-        if update_config("config.ini", "ADMIN", "admins", ",".join(admins)):
-            # config was updated successfully 
+        self.configs.set_admin_list(admins)
 
-            # tell the user the changes were made successfully
-            await ctx.send(f"{memberName} has been added to the admins list.")
-
-        else:
-            # failed to update the config file
-            await ctx.send(f"Failed to add {memberName} to the admins list.")
-            return
-        # end
+        # tell the user the changes were made successfully
+        await ctx.send(f"{memberName} has been added to the admins list.")
     # end
 
     @admins.command(name="remove")
@@ -590,24 +565,22 @@ class Settings(commands.Cog):
         # end
 
         # get the list of admins
-        admins = get_list_config("config.ini", "ADMIN", "admins")
-
-        # check if config was read successfully
-        if admins is None:
-            # config file was not not read
-            await ctx.send("There was an error reading the config file.")
-            return
-        # end
+        admins = self.configs.get_admin_list()
 
         # check if given id is in the admins list
-        if not str(userId) in admins:
+        if not userId in admins:
             # the given user is not on the admins list
             await ctx.send("This user is not on the admins list.")
             return
         # end
 
         # remove given user form the admins list
-        admins.remove(str(userId))
+        admins.remove(userId)
+
+        # update admins list
+        self.configs.set_admin_list(admins)
+
+        # tell the user the admins list was updated
         await ctx.send(f"{userId} was removed from the admins list.")
     # end
 
@@ -616,15 +589,7 @@ class Settings(commands.Cog):
         """Lists lists everyone on the admin list."""
     
         # get the admins list from config file
-        admins = get_list_config("config.ini", "ADMIN", "admins")
-        # admins is a list of user ids
-
-        # check if admins list was read successfully
-        if admins is None:
-            # config file was not read form successully
-            await ctx.send("There was an error reading the config file.")
-            return
-        # end
+        admins = self.configs.get_admin_list()
 
         # check if admins list is empty
         if len(admins) == 0:

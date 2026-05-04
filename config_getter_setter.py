@@ -31,34 +31,6 @@ class Config:
             raise FileNotFoundError("No config file found.")
         # end
 
-        self._schema = {
-            "PARENT VIDEO PATH":{
-                "aliases": ["PARENT VIDEO PATH"],
-                "keys": {
-                    "path": {
-                        "aliases": ["path"],
-                        "set function": self.set_parent_download_path,
-                        "get function": self.get_parent_download_path
-                    }
-                }
-            },
-            "ADMIN": {
-                "aliases": ["ADMIN"],
-                "keys": {
-                    "bot token": {
-                        "aliases": ["bot token"],
-                        "set function": self.set_bot_token,
-                        "get function": self.get_bot_token,
-                    },
-                    "admins": {
-                        "aliases": ["admins"],
-                        "set function": self.set_admin_list,
-                        "get function": self.get_admin_list
-                    }
-                }
-            }
-        }
-
         # stroing section names in attribute so they can be easily changed 
         # and renamed later if needed
         self._parent_video_path = "PARENT VIDEO PATH"
@@ -132,46 +104,86 @@ class Config:
 
     @sync
     def get_sections(self) -> list[str]:
+        """Gets all sections in the config file as a list."""
+        
         return self._parser.sections()
     # end
 
     @sync
-    def get_section_options(self, section: str):
-        return self._parser[section].keys()
+    def get_section_options(self, section: str) -> list[str]:
+        """Gets a list of all option names in a section as a list."""
+
+        return list(self._parser[section].keys())
     # end
 
     @sync
-    def get_all_options(self) -> list[str]:
+    def get_all_option_names(self) -> list[str]:
+        """Gets all option names as a list."""
+
         return [option for section in self._parser.sections() for option in self._parser[section].keys()]
+    # end
+
+    @sync
+    def get_all_option_values(self) -> list[str]:
+        """Gets all option values as a list."""
+
+        return [self._parser[section][key] for section in self._parser.sections() for key in self._parser[section].keys()]
     # end
     
     @sync
     def set_parent_download_path(self, value: str):
+        """
+        Sets the parent download path of YouTube videos.
+
+        Arguments:
+            value (str): The directory path YouTube videos should be stored.
+        """
+
         self._parser.set(section=self._parent_video_path, option="path", value=value)
     # end
 
     @sync
     def get_parent_download_path(self) -> str:
+        """Gets the current parent download path of YouTube videos."""
+
         return self._parser.get(section=self._parent_video_path, option="path")
     # end
 
     @sync
-    def set_bot_token(self, value: int):
-        self._parser.set(section=self._admin, option="bot token", value=str(value))
+    def set_bot_token(self, value: str):
+        """
+        Sets the current bot token.
+
+        Arguments:
+            value (str): The value to update the bot token option to.
+        """
+
+        self._parser.set(section=self._admin, option="bot token", value=value)
     # end
 
     @sync
-    def get_bot_token(self) -> int:
-        return int(self._parser.get(section=self._admin, option="bot token"))
+    def get_bot_token(self) -> str:
+        """Gets the current bot token."""
+
+        return self._parser.get(section=self._admin, option="bot token")
     # end
 
     @sync
     def set_admin_list(self, value: list[int]):
+        """
+        Updates the list of admins.
+
+        Arguments:
+            value (list[str]): A list of discord user id's.
+        """
+
         self._parser.set(section=self._admin, option="admins", value=",".join(str(value)))
     # end
     
     @sync
     def get_admin_list(self) -> list[int]:
+        """Gets the current list of admins as a list of discord user id's."""
+
         admins = self._parser.get(section=self._admin, option="admins").split(",")
 
         # remove empty strings and convert non-empty strings to integers
@@ -185,5 +197,6 @@ class Config:
 if __name__ == "__main__":
     config = Config()
 
-    print(config.get_all_options())
+    print(config.get_all_option_names())
+    print(config.get_all_option_values())
 # end
