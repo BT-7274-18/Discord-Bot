@@ -74,7 +74,10 @@ async def download_video(videoUrl: str, quality: str="360p") -> bool:
 
     # merge audio and video files
     try:
-        ffmpeg.input(videoPath).input(audioPath).ouput(vcodec="copy", acodec="aac", stric="experimental").overwrite_output().run(quiet=False)
+        inputVideo = ffmpeg.input(videoPath)
+        inputAudio = ffmpeg.input(audioPath)
+
+        ffmpeg.concat(inputVideo, inputAudio, v=1, a=1).output(f"{title}.mp4").run(quiet=False)
 
     except ffmpeg.Error:
         os.remove(videoPath)
