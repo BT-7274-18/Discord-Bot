@@ -1,8 +1,8 @@
 from discord.ext import commands
-from pathvalidate import sanitize_filepath
+from pathvalidate import sanitize_filename
 from pytubefix import AsyncYouTube
 from os import getcwd
-
+import re
 
 async def is_valid_video_url(videoUrl: str) -> bool:
     """
@@ -26,27 +26,48 @@ async def is_valid_video_url(videoUrl: str) -> bool:
 # end
 
 
-async def download_video(videoUrl: str) -> bool:
+async def download_video(videoUrl: str, quality: str="360p") -> bool:
     """
     Downloads the given YouTube video
 
     Arguments:
         videoUrl (str): The url of the video you want to download.
+        quality (str): The quality to download the given video at e.g. 360p
 
     Returns:
         True if the video was downloaded or false if there was a problem.
     """
 
-    yt = AsyncYouTube(videoUrl, use_oauth=True, allow_oauth_cache=True)
+    # get youtube video object
+    yt = AsyncYouTube(videoUrl, use_oauth=True, allow_oauth_cache=True, )
 
+    # get the streams avalible for this video
     streams = await yt.streams()
-    stream = streams.filter(progressive=True).get_lowest_resolution()
 
-    if stream is None:
+    # get the video stream for this video
+    video = streams.filter(
+        adaptive=True,
+        res=quality,
+        mime_type="video/mp4"
+    ).first()
+    # get the audio stream for this video
+    audio = streams.filter(
+        adaptive=True,
+        only_audio=True
+    ).order_by("abr").desc().first()
+
+    # make sure audio and video were fetched successfully
+    if video is None or audio is None:
         return False
     # end
 
-    stream.download(getcwd(), stream.title)
+    # get the title of the video
+    title = video.title
+
+    # download audio and video streams
+    video.download(getcwd(), f"{sanitize_filename(title)} video only.mp4")
+    audio.download(getcwd(), f"{sanitize_filename(title)} audio only.mp4")
+
 
     return True
 # end
@@ -65,15 +86,16 @@ class Video(commands.Cog):
     # end
 
     @video.command(name="download")
-    async def video_download(self, ctx: commands.Context, url: str | None=None, dir: str | None=None):
+    async def video_download(self, ctx: commands.Context, url: str | None=None, dir: str | None=None, quality: str | None=None):
         """
         Downloads a YouTube video at the given url.
 
-        Useage: download <url> [dir]
+        Useage: download <url> [dir] 
         
         Arguments:
             url: The url of the video you want to download.
             dir: The directory the video should be downloaded to.
+            quality: The quality to download the video at e.g. 360p. Defaults to 360p.
         """
     
         # make sure the user provides a url
@@ -90,8 +112,9 @@ class Video(commands.Cog):
 
         await ctx.send("Downloading video.")
 
+        # try to download video
         try:
-            await download_video(url)
+            await download_video(url, quality=quality if quality is not None else "360p")
 
         except Exception as e:
             await ctx.send("Could not download video.")
