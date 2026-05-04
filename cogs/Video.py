@@ -2,7 +2,7 @@ from discord.ext import commands
 from pathvalidate import sanitize_filename
 from pytubefix import AsyncYouTube
 from os import getcwd
-import re
+import re, ffmpeg, os
 
 async def is_valid_video_url(videoUrl: str) -> bool:
     """
@@ -65,9 +65,26 @@ async def download_video(videoUrl: str, quality: str="360p") -> bool:
     title = video.title
 
     # download audio and video streams
-    video.download(getcwd(), f"{sanitize_filename(title)} video only.mp4")
-    audio.download(getcwd(), f"{sanitize_filename(title)} audio only.mp4")
+    videoPath = video.download(getcwd(), f"{sanitize_filename(title)} video only.mp4")
+    audioPath = audio.download(getcwd(), f"{sanitize_filename(title)} audio only.mp4")
 
+    # make sure audio and video files were downloaded
+    if videoPath is None or audioPath is None:
+        return False
+
+    # merge audio and video files
+    try:
+        ffmpeg.input(videoPath).input(audioPath).ouput(vcodec="copy", acodec="aac", stric="experimental").overwrite_output().run(quiet=False)
+
+    except ffmpeg.Error:
+        os.remove(videoPath)
+        os.remove(audioPath)
+        return False
+    # end
+
+    # remove temp files
+    os.remove(videoPath)
+    os.remove(audioPath)
 
     return True
 # end
