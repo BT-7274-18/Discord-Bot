@@ -1,7 +1,6 @@
 from discord.ext import commands
 from pathvalidate import sanitize_filename
 from config_getter_setter import Config
-import os
 
 
 def get_channels() -> list[str]:

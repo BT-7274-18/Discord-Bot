@@ -450,7 +450,7 @@ class Settings(commands.Cog):
 
     @settings.command(name="import")
     async def settings_import(self, ctx: commands.Context):
-        """Imports the given config file."""
+        """Imports the attatched config file."""
     
         # check if the user uploaded a file
         if not ctx.message.attachments:

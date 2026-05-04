@@ -1,113 +1,55 @@
 from discord.ext import commands
 from pathvalidate import sanitize_filepath
-import os, configparser
+from pytubefix import AsyncYouTube
+from os import getcwd
 
 
-def get_config_options(filePath: str) -> list | None:
-    # make sure config file exists
-    if not os.path.isfile(filePath):
-        print(f"Error: File '{filePath}' not found.")
-        return None
-    # end
-
-    # create config parser
-    config = configparser.ConfigParser()
-
-    # safely parse config file
-    try:
-        config.read(filePath)
-
-    # handle parsing error
-    except configparser.Error as e:
-        print(f"Error reading config file: {e}")
-        return None
-    # end
-
-    # make sure there are sections to read
-    if not config.sections():
-        print("No sections found in the configuration file.")
-        return None
-    # end
-
-    # return all config option names
-    return [option for section in config.sections() for option, _ in config.items(section)]
-# end
-
-
-def update_config(filePath, section, key, value) -> bool:
+async def is_valid_video_url(videoUrl: str) -> bool:
     """
-    Update or create a key-value pair in a given section of an INI file.
-
+    Checks if the given YouTube video url is valid.
+    
     Arguments:
-        filePath (str): The file path to the config file.
-        section (str): The name of the section the given key is located.
-        key (str): The name of the key you want to update.
+        videoUrl (str): Url to validate.
 
     Returns:
-        True if the file was updated successfully or false if there was an error along the way.
+        True if the url is valid or false if not.
     """
 
-    config = configparser.ConfigParser()
-
-    # Read existing file if it exists else return false
-    if os.path.exists(filePath):
-        config.read(filePath)
-
-    else:
-        return False
-    # end
-
-    # return false if config does not have the given section
-    if not config.has_section(section):
-        return False
-    # end
-
-    # Set the value
-    config.set(section, key, str(value))  # Always store as string
-
-    # Write changes back to file
+    # try to fetch video metadata
     try:
-        with open(filePath, 'w') as configfile:
-            config.write(configfile)
-        # end
-
-        print(f"Updated [{section}] {key} = {value} in {filePath}")
-
-        # config was updated successfully return true
+        AsyncYouTube(videoUrl)
         return True
     
-    except OSError as e:
-        print(f"Error writing to file: {e}")
-        # there was an error writing to config file return false
+    except Exception:
         return False
     # end
 # end
 
 
-def get_config(filePath, section, key):
+async def download_video(videoUrl: str) -> bool:
     """
-    Update or create a key-value pair in a given section of an INI file.
+    Downloads the given YouTube video
 
     Arguments:
-        filePath (str): The file path to the config file.
-        section (str): The name of the section the given key is located.
-        key (str): The name of the key you want to update.
+        videoUrl (str): The url of the video you want to download.
 
     Returns:
-        True if the file was updated successfully or false if there was an error along the way.
+        True if the video was downloaded or false if there was a problem.
     """
 
-    config = configparser.ConfigParser()
+    yt = AsyncYouTube(videoUrl, use_oauth=True, allow_oauth_cache=True)
 
-    # Read existing file if it exists else return false
-    if os.path.exists(filePath):
-        config.read(filePath)
+    streams = await yt.streams()
+    stream = streams.filter(progressive=True).get_lowest_resolution()
 
-    else:
+    if stream is None:
         return False
     # end
 
-    return config.get(section, key)
+    stream.download(getcwd(), stream.title)
+
+    return True
+# end
 
 
 class Video(commands.Cog):
@@ -121,6 +63,45 @@ class Video(commands.Cog):
         
         await ctx.send_help(ctx.command)
     # end
+
+    @video.command(name="download")
+    async def video_download(self, ctx: commands.Context, url: str | None=None, dir: str | None=None):
+        """
+        Downloads a YouTube video at the given url.
+
+        Useage: download <url> [dir]
+        
+        Arguments:
+            url: The url of the video you want to download.
+            dir: The directory the video should be downloaded to.
+        """
+    
+        # make sure the user provides a url
+        if url is None:
+            await ctx.send_help(ctx.command)
+            return
+        # end
+
+        # make sure the given url is valid
+        if not await is_valid_video_url(url):
+            await ctx.send("Video url is invalid.")
+            return
+        # end
+
+        await ctx.send("Downloading video.")
+
+        try:
+            await download_video(url)
+
+        except Exception as e:
+            await ctx.send("Could not download video.")
+
+            print(f"Error downloading video: {e}")
+            return
+        # end
+
+        await ctx.send("Finished downloading video.")
+    # end
 # end
 
 
@@ -130,5 +111,5 @@ async def setup(bot: commands.Bot):
 
 
 if __name__ == "__main__":
-    print(get_config('config.ini', "VIDEO PARENT PATH", "path"))
+    pass
 # end 
