@@ -1,5 +1,6 @@
 from discord.ext import commands
 from pathvalidate import sanitize_filename
+from config_getter_setter import Config
 import os
 
 
@@ -71,6 +72,7 @@ class Channel(commands.Cog):
 
         self.bot = bot
         self.illegalCharacters = [",", "/", "\\"]
+        self.configs = Config()
     # end
 
     def contains_illegal_characters(self, st: str) -> bool:
@@ -143,7 +145,7 @@ class Channel(commands.Cog):
         # end
 
         # all checks passed, add channel to watch list
-        add_channel(f"{channelUrl},{"0" if notify is None else "1"},{os.getcwd() + "/" + channelName},{channelName}")
+        add_channel(f"{channelUrl},{"0" if notify is None else "1"},{self.configs.get_parent_download_path() + "/" + channelName},{channelName}")
     # end
 
     @channel.command(name="list")
@@ -159,7 +161,7 @@ class Channel(commands.Cog):
         
         if verbose is None:
             # send a list of only channel names
-            await ctx.send("\n".join([channel.split(",")[-1] for channel in get_channels()]))
+            await ctx.send(f"```{"\n".join([channel.split(",")[-1] for channel in get_channels()])}```")
 
         elif verbose in ["-v", "--verbose"]:
             # send a detailed list of channels on the watch list
@@ -169,18 +171,22 @@ class Channel(commands.Cog):
             channels = get_channels()
             displayStrings = []
 
+            nameColWidth = max([len(channel.split(",")[3]) for channel in channels])
+            urlColWidth = max([len(channel.split(",")[0]) for channel in channels])
+
             # format channels for display
             for channel in channels:
                 channel = channel.split(",")
-                displayStrings.append(f"{channel[-1]} {channel[0]} Notify: {"Yes" if int(channel[1])  else "No"}")
+                displayStrings.append(f"{channel[3].ljust(nameColWidth)} {channel[0].ljust(urlColWidth)} Notify: {"Yes" if int(channel[1])  else "No"}")
             #end
 
             # send the detailed list of channels
-            await ctx.send("\n".join(displayStrings))
+            await ctx.send(f"```{"\n".join(displayStrings)}```")
 
         else:
             # user used an unknown option
             await ctx.send_help(ctx.command)
+        # end
     # end
 
     @channel.command(name="edit")
@@ -255,7 +261,7 @@ class Channel(commands.Cog):
             # tell the user needs to give the name of the channel they want to remove
             await ctx.send("Please provide a channel name.")
 
-        elif channelName in [channel.split(",")[-1] for channel in get_channels()]:
+        elif channelName in [channel.split(",")[3] for channel in get_channels()]:
             # remove the given channel from the watch list
             remove_channel(channelName)
             # tell the user the channel was removed successfully
