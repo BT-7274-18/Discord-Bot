@@ -39,7 +39,7 @@ async def download_video(videoUrl: str, downloadDir: str | None=None, quality: s
     """
 
     # get youtube video object
-    yt = AsyncYouTube(videoUrl, use_oauth=True, allow_oauth_cache=True, )
+    yt = AsyncYouTube(videoUrl, use_oauth=True, allow_oauth_cache=True)
 
     # get the streams avalible for this video
     streams = await yt.streams()
