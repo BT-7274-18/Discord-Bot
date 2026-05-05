@@ -88,8 +88,6 @@ async def download_video(videoUrl: str, downloadDir: str | None=None, quality: s
     # remove temp files
     os.remove(videoPath)
     os.remove(audioPath)
-    # move ouput file to download dir
-    shutil.move(f"{title}.mp4", f"{downloadDir}/{title}.mp4")
 
     return True
 # end
