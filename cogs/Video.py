@@ -2,7 +2,7 @@ from discord.ext import commands
 from pathvalidate import sanitize_filename
 from pytubefix import AsyncYouTube
 from os import getcwd
-import re, ffmpeg, os
+import re, ffmpeg, os, shutil
 
 async def is_valid_video_url(videoUrl: str) -> bool:
     """
@@ -65,8 +65,8 @@ async def download_video(videoUrl: str, downloadDir: str | None=None, quality: s
     title = video.title
 
     # download audio and video streams
-    videoPath = video.download(downloadDir if downloadDir is not None else getcwd(), f"{sanitize_filename(title)} video only.mp4")
-    audioPath = audio.download(downloadDir if downloadDir is not None else getcwd(), f"{sanitize_filename(title)} audio only.mp4")
+    videoPath = video.download(getcwd(), f"{sanitize_filename(title)} video only.mp4")
+    audioPath = audio.download(getcwd(), f"{sanitize_filename(title)} audio only.mp4")
 
     # make sure audio and video files were downloaded
     if videoPath is None or audioPath is None:
@@ -77,7 +77,7 @@ async def download_video(videoUrl: str, downloadDir: str | None=None, quality: s
         inputVideo = ffmpeg.input(videoPath)
         inputAudio = ffmpeg.input(audioPath)
 
-        ffmpeg.concat(inputVideo, inputAudio, v=1, a=1).output(f"{downloadDir}/{title}.mp4").run(quiet=True)
+        ffmpeg.concat(inputVideo, inputAudio, v=1, a=1).output(f"{title}.mp4").run(quiet=True)
 
     except ffmpeg.Error:
         os.remove(videoPath)
@@ -88,6 +88,8 @@ async def download_video(videoUrl: str, downloadDir: str | None=None, quality: s
     # remove temp files
     os.remove(videoPath)
     os.remove(audioPath)
+    # move ouput file to download dir
+    shutil.move(f"{title}.mp4", f"{downloadDir}/{title}.mp4")
 
     return True
 # end
