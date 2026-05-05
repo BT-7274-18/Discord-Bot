@@ -77,7 +77,7 @@ async def download_video(videoUrl: str, downloadDir: str | None=None, quality: s
         inputVideo = ffmpeg.input(videoPath)
         inputAudio = ffmpeg.input(audioPath)
 
-        ffmpeg.concat(inputVideo, inputAudio, v=1, a=1).output(f"{title}.mp4").run(quiet=False)
+        ffmpeg.concat(inputVideo, inputAudio, v=1, a=1).output(f"{downloadDir}/{title}.mp4").run(quiet=True)
 
     except ffmpeg.Error:
         os.remove(videoPath)
