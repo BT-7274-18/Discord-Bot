@@ -26,7 +26,7 @@ async def is_valid_video_url(videoUrl: str) -> bool:
 # end
 
 
-async def download_video(videoUrl: str, quality: str="360p") -> bool:
+async def download_video(videoUrl: str, downloadDir: str | None=None, quality: str="360p") -> bool:
     """
     Downloads the given YouTube video
 
@@ -65,8 +65,8 @@ async def download_video(videoUrl: str, quality: str="360p") -> bool:
     title = video.title
 
     # download audio and video streams
-    videoPath = video.download(getcwd(), f"{sanitize_filename(title)} video only.mp4")
-    audioPath = audio.download(getcwd(), f"{sanitize_filename(title)} audio only.mp4")
+    videoPath = video.download(downloadDir if downloadDir is not None else getcwd(), f"{sanitize_filename(title)} video only.mp4")
+    audioPath = audio.download(downloadDir if downloadDir is not None else getcwd(), f"{sanitize_filename(title)} audio only.mp4")
 
     # make sure audio and video files were downloaded
     if videoPath is None or audioPath is None:
@@ -130,11 +130,25 @@ class Video(commands.Cog):
             return
         # end
 
+        # make sure download dir is valid if given
+        if dir is not None and (not os.path.exists(dir) or not os.path.isdir(dir)):
+            await ctx.send("Invalid download directory.")
+            return
+        # end
+
+        # regex patter to only match video quality format e.g. 1080p
+        qualityPattern = re.compile(r"^(144|360|720|1080|1440|2160)p$")
+        # make sure quality is valid if given
+        if quality is not None and (not bool(qualityPattern.search(quality))):
+            await ctx.send("Invalid video quality.")
+            return
+        # end
+
         await ctx.send("Downloading video.")
 
         # try to download video
         try:
-            await download_video(url, quality=quality if quality is not None else "360p")
+            await download_video(videoUrl=url, downloadDir=dir, quality=quality if quality is not None else "360p")
 
         except Exception as e:
             await ctx.send("Could not download video.")
