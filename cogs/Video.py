@@ -2,7 +2,7 @@ from discord.ext import commands
 from pathvalidate import sanitize_filename
 from pytubefix import AsyncYouTube
 from os import getcwd
-import re, ffmpeg, os, shutil
+import re, ffmpeg, os, yt_dlp
 
 async def is_valid_video_url(videoUrl: str) -> bool:
     """
@@ -39,56 +39,70 @@ async def download_video(videoUrl: str, downloadDir: str | None=None, quality: s
     """
 
     # get youtube video object
-    yt = AsyncYouTube(videoUrl, use_oauth=True, allow_oauth_cache=True)
+    # yt = AsyncYouTube(videoUrl, use_oauth=True, allow_oauth_cache=True)
 
-    # get the streams avalible for this video
-    streams = await yt.streams()
+    # # get the streams avalible for this video
+    # streams = await yt.streams()
 
-    # get the video stream for this video
-    video = streams.filter(
-        adaptive=True,
-        res=quality,
-        mime_type="video/mp4"
-    ).first()
-    # get the audio stream for this video
-    audio = streams.filter(
-        adaptive=True,
-        only_audio=True
-    ).order_by("abr").desc().first()
+    # # get the video stream for this video
+    # video = streams.filter(
+    #     adaptive=True,
+    #     res=quality,
+    #     mime_type="video/mp4"
+    # ).first()
+    # # get the audio stream for this video
+    # audio = streams.filter(
+    #     adaptive=True,
+    #     only_audio=True
+    # ).order_by("abr").desc().first()
 
-    # make sure audio and video were fetched successfully
-    if video is None or audio is None:
-        return False
-    # end
+    # # make sure audio and video were fetched successfully
+    # if video is None or audio is None:
+    #     return False
+    # # end
 
-    # get the title of the video
-    title = sanitize_filename(video.title)
+    # # get the title of the video
+    # title = sanitize_filename(video.title)
 
-    # download audio and video streams
-    videoPath = video.download(downloadDir if downloadDir is not None else getcwd(), f"{title} video only.mp4")
-    audioPath = audio.download(downloadDir if downloadDir is not None else getcwd(), f"{title} audio only.mp4")
+    # # download audio and video streams
+    # videoPath = video.download(downloadDir if downloadDir is not None else getcwd(), f"{title} video only.mp4")
+    # audioPath = audio.download(downloadDir if downloadDir is not None else getcwd(), f"{title} audio only.mp4")
 
-    # make sure audio and video files were downloaded
-    if videoPath is None or audioPath is None:
-        return False
-    # end
+    # # make sure audio and video files were downloaded
+    # if videoPath is None or audioPath is None:
+    #     return False
+    # # end
 
-    # merge audio and video files
+    # # merge audio and video files
+    # try:
+    #     inputVideo = ffmpeg.input(videoPath)
+    #     inputAudio = ffmpeg.input(audioPath)
+
+    #     ffmpeg.concat(inputVideo, inputAudio, v=1, a=1).output(f"{downloadDir}/{title}.mp4").run(quiet=True)
+
+    # except ffmpeg.Error:
+    #     os.remove(videoPath)
+    #     os.remove(audioPath)
+    #     return False
+    # # end
+
+    # # remove temp files
+    # os.remove(videoPath)
+    # os.remove(audioPath)
+
     try:
-        inputVideo = ffmpeg.input(videoPath)
-        inputAudio = ffmpeg.input(audioPath)
+        with yt_dlp.YoutubeDL(
+            {
+                'format': f'bestvideo[height>={quality}]+bestaudio',
+                'merge_output_format': 'mp4',
+                'outtmpl': os.path.join(downloadDir if downloadDir is not None else getcwd(), '%(title)s.%(ext)s'),
+            }
+        ) as ydl:
+            ydl.download([videoUrl])
 
-        ffmpeg.concat(inputVideo, inputAudio, v=1, a=1).output(f"{downloadDir}/{title}.mp4").run(quiet=True)
-
-    except ffmpeg.Error:
-        os.remove(videoPath)
-        os.remove(audioPath)
+    except Exception:
         return False
     # end
-
-    # remove temp files
-    os.remove(videoPath)
-    os.remove(audioPath)
 
     return True
 # end
@@ -111,7 +125,7 @@ class Video(commands.Cog):
         """
         Downloads a YouTube video at the given url.
 
-        Useage: download <url> [dir] 
+        Useage: download <url> [dir] [quality]
         
         Arguments:
             url: The url of the video you want to download.
