@@ -65,8 +65,8 @@ async def download_video(videoUrl: str, downloadDir: str | None=None, quality: s
     title = video.title
 
     # download audio and video streams
-    videoPath = video.download(getcwd(), f"{sanitize_filename(title)} video only.mp4")
-    audioPath = audio.download(getcwd(), f"{sanitize_filename(title)} audio only.mp4")
+    videoPath = video.download(downloadDir if downloadDir is not None else getcwd(), f"{sanitize_filename(title)} video only.mp4")
+    audioPath = audio.download(downloadDir if downloadDir is not None else getcwd(), f"{sanitize_filename(title)} audio only.mp4")
 
     # make sure audio and video files were downloaded
     if videoPath is None or audioPath is None:
