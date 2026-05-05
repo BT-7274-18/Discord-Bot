@@ -93,8 +93,7 @@ async def download_video(videoUrl: str, downloadDir: str | None=None, quality: s
     try:
         with yt_dlp.YoutubeDL(
             {
-                'format': f'bestvideo[height>={quality}]+bestaudio',
-                'merge_output_format': 'mp4',
+                'format': f'bestvideo[height<={quality}]+bestaudio',
                 'outtmpl': os.path.join(downloadDir if downloadDir is not None else getcwd(), '%(title)s.%(ext)s'),
             }
         ) as ydl:
