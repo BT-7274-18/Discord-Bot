@@ -32,7 +32,7 @@ async def is_valid_video_url(videoUrl: str) -> bool:
 # end
 
 
-async def download_video(videoUrl: str, downloadDir: str | None=None, quality: str="360p") -> bool:
+async def download_video(videoUrl: str, downloadDir: str, quality: str="360p") -> bool:
     """
     Downloads the given YouTube video
 
@@ -44,63 +44,11 @@ async def download_video(videoUrl: str, downloadDir: str | None=None, quality: s
         True if the video was downloaded or false if there was a problem.
     """
 
-    # get youtube video object
-    # yt = AsyncYouTube(videoUrl, use_oauth=True, allow_oauth_cache=True)
-
-    # # get the streams avalible for this video
-    # streams = await yt.streams()
-
-    # # get the video stream for this video
-    # video = streams.filter(
-    #     adaptive=True,
-    #     res=quality,
-    #     mime_type="video/mp4"
-    # ).first()
-    # # get the audio stream for this video
-    # audio = streams.filter(
-    #     adaptive=True,
-    #     only_audio=True
-    # ).order_by("abr").desc().first()
-
-    # # make sure audio and video were fetched successfully
-    # if video is None or audio is None:
-    #     return False
-    # # end
-
-    # # get the title of the video
-    # title = sanitize_filename(video.title)
-
-    # # download audio and video streams
-    # videoPath = video.download(downloadDir if downloadDir is not None else getcwd(), f"{title} video only.mp4")
-    # audioPath = audio.download(downloadDir if downloadDir is not None else getcwd(), f"{title} audio only.mp4")
-
-    # # make sure audio and video files were downloaded
-    # if videoPath is None or audioPath is None:
-    #     return False
-    # # end
-
-    # # merge audio and video files
-    # try:
-    #     inputVideo = ffmpeg.input(videoPath)
-    #     inputAudio = ffmpeg.input(audioPath)
-
-    #     ffmpeg.concat(inputVideo, inputAudio, v=1, a=1).output(f"{downloadDir}/{title}.mp4").run(quiet=True)
-
-    # except ffmpeg.Error:
-    #     os.remove(videoPath)
-    #     os.remove(audioPath)
-    #     return False
-    # # end
-
-    # # remove temp files
-    # os.remove(videoPath)
-    # os.remove(audioPath)
-
     try:
         with yt_dlp.YoutubeDL(
             {
                 'format': f'bestvideo[height<={quality}]+bestaudio',
-                'outtmpl': os.path.join(downloadDir if downloadDir is not None else getcwd(), '%(title)s.%(ext)s'),
+                'outtmpl': os.path.join(downloadDir, '%(title)s.%(ext)s'),
             }
         ) as ydl:
             ydl.download([videoUrl])
@@ -158,10 +106,16 @@ class Video(commands.Cog):
             return
         # end
 
-        # make sure download directories still exsit
-        if not os.path.exists(self.configs.get_parent_download_path()) or not os.path.exists(f"{self.configs.get_parent_download_path()}/Misc."):
-            await ctx.send("Download directories could not be found.")
+        # make sure parent download directoriy still exsit
+        if not os.path.exists(self.configs.get_parent_download_path()):
+            await ctx.send("Could not find parent download directory.")
             return
+        # end
+
+        # create misc. video directory if it doesn't exist
+        if not os.path.exists(f"{self.configs.get_parent_download_path()}/Misc."):
+            # create misc. videos directory
+            os.mkdir(f"{self.configs.get_parent_download_path()}/Misc.")
         # end
 
         await ctx.send("Downloading video.")
