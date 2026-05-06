@@ -1,7 +1,6 @@
 from discord.ext import commands
-from pathvalidate import sanitize_filename
-from pytubefix import AsyncYouTube
 from os import getcwd
+from config_getter_setter import Config
 import re, os, yt_dlp
 
 async def is_valid_video_url(videoUrl: str) -> bool:
@@ -20,7 +19,7 @@ async def is_valid_video_url(videoUrl: str) -> bool:
             'quiet': True,       # Suppress normal output
             'skip_download': "True"
         }
-        
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(videoUrl, download=False)
             # Check if it's a video (not just a playlist or channel)
@@ -117,6 +116,7 @@ async def download_video(videoUrl: str, downloadDir: str | None=None, quality: s
 class Video(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.configs = Config()
     # end
 
     @commands.group(name="video", invoke_without_command=True)
@@ -127,15 +127,14 @@ class Video(commands.Cog):
     # end
 
     @video.command(name="download")
-    async def video_download(self, ctx: commands.Context, url: str | None=None, dir: str | None=None, quality: str | None=None):
+    async def video_download(self, ctx: commands.Context, url: str | None=None, quality: str | None=None):
         """
         Downloads a YouTube video at the given url.
 
-        Useage: download <url> [dir] [quality]
+        Useage: download <url> [quality]
         
         Arguments:
             url: The url of the video you want to download.
-            dir: The directory the video should be downloaded to.
             quality: The quality to download the video at e.g. 360p. Defaults to 360p.
         """
     
@@ -151,12 +150,6 @@ class Video(commands.Cog):
             return
         # end
 
-        # make sure download dir is valid if given
-        if dir is not None and (not os.path.exists(dir) or not os.path.isdir(dir)):
-            await ctx.send("Invalid download directory.")
-            return
-        # end
-
         # regex patter to only match video quality format e.g. 1080p
         qualityPattern = re.compile(r"^(144|360|720|1080|1440|2160)p$")
         # make sure quality is valid if given
@@ -169,7 +162,7 @@ class Video(commands.Cog):
 
         # try to download video
         try:
-            await download_video(videoUrl=url, downloadDir=dir, quality=quality if quality is not None else "360p")
+            await download_video(videoUrl=url, downloadDir=f"{self.configs.get_parent_download_path()}/Misc.", quality=quality if quality is not None else "360p")
 
         except Exception as e:
             await ctx.send("Could not download video.")
