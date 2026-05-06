@@ -2,7 +2,7 @@ from discord.ext import commands
 from pathvalidate import sanitize_filename
 from pytubefix import AsyncYouTube
 from os import getcwd
-import re, ffmpeg, os, yt_dlp
+import re, os, yt_dlp
 
 async def is_valid_video_url(videoUrl: str) -> bool:
     """
@@ -15,14 +15,21 @@ async def is_valid_video_url(videoUrl: str) -> bool:
         True if the url is valid or false if not.
     """
 
-    # try to fetch video metadata
     try:
-        AsyncYouTube(videoUrl)
-        return True
-    
+        ydl_opts: yt_dlp._Params = {
+            'quiet': True,       # Suppress normal output
+            'skip_download': "True"
+        }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(videoUrl, download=False)
+            # Check if it's a video (not just a playlist or channel)
+            if info.get('_type') == 'video' or 'formats' in info:
+                return True
+            else:
+                return False
     except Exception:
         return False
-    # end
 # end
 
 
