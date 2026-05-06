@@ -158,6 +158,12 @@ class Video(commands.Cog):
             return
         # end
 
+        # make sure download directories still exsit
+        if not os.path.exists(self.configs.get_parent_download_path()) or not os.path.exists(f"{self.configs.get_parent_download_path()}/Misc."):
+            await ctx.send("Download directories could not be found.")
+            return
+        # end
+
         await ctx.send("Downloading video.")
 
         # try to download video

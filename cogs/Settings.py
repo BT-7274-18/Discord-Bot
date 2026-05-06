@@ -392,6 +392,12 @@ class Settings(commands.Cog):
                 return
             # end
 
+            # make sure given path exists
+            if not os.path.exists(value):
+                await ctx.send("Directory does not exists.")
+                return
+            # end
+
             # update the path setting
             self.configs.set_parent_download_path(value=value)
 
