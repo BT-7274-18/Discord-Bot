@@ -16,6 +16,7 @@ async def is_valid_video_url(videoUrl: str) -> bool:
 
     try:
         ydl_opts: yt_dlp._Params = {
+            "cookiefile": "cookies.txt",
             'quiet': True,       # Suppress normal output
             'skip_download': "True"
         }
@@ -47,6 +48,7 @@ async def download_video(videoUrl: str, downloadDir: str, quality: str="360p") -
     try:
         with yt_dlp.YoutubeDL(
             {
+                "cookiefile": "cookies.txt",
                 'format': f'bestvideo[height<={quality}]+bestaudio',
                 'outtmpl': os.path.join(downloadDir, '%(title)s.%(ext)s'),
             }
