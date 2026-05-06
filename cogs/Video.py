@@ -17,7 +17,7 @@ async def is_valid_video_url(videoUrl: str) -> bool:
     try:
         ydl_opts: yt_dlp._Params = {
             'quiet': True,       # Suppress normal output
-            'skip_download': True
+            'skip_download': "True"
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
