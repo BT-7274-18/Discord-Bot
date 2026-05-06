@@ -1,6 +1,49 @@
 from discord.ext import commands
 from config_getter_setter import Config
-import os
+from yt_dlp import YoutubeDL
+import os, yt_dlp
+
+
+def is_youtube_channel(url: str) -> bool:
+    """
+    Verifies that the given url points to a YouTube channel.
+
+    Arguments:
+        url (str): A url that points to a YouTube channel.
+
+    Returns:
+        True if the url points to a channel or false if not.
+    """
+
+    ydl_opts: yt_dlp._Params = {
+        'quiet': True,
+        'skip_download': "True",
+        'extract_flat': True,  # Faster, avoids full extraction
+    }
+
+    try:
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+        # end
+
+        # Channels/playlists typically have 'entries'
+        if 'entries' in info:
+            # Additional check: YouTube channel types
+            if info.get('_type') in ('playlist', 'multi_video'):
+                return True
+            # end
+
+        # Some channel URLs still return specific extractor keys
+        if info.get('extractor_key', '').lower() in ('youtubechannel', 'youtubeuser'):
+            return True
+        # end
+
+        return False
+
+    except Exception:
+        return False
+    # end
+# end
 
 
 def get_channels() -> list[str]:
@@ -162,6 +205,12 @@ class Channel(commands.Cog):
         # make sure parent download path still exists
         if not os.path.exists(self.configs.get_parent_download_path()):
             await ctx.send("Parent download path no longer exists.")
+            return
+        # end
+
+        # make sure channel url is valid
+        if not is_youtube_channel(url=channelUrl):
+            await ctx.send("Invalid channel url.")
             return
         # end
 
