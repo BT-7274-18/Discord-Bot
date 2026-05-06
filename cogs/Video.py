@@ -18,7 +18,7 @@ async def is_valid_video_url(videoUrl: str) -> bool:
         ydl_opts: yt_dlp._Params = {
             "cookiefile": "cookies.txt",
             'quiet': True,       # Suppress normal output
-            'skip_download': "True"
+            'skip_download': True
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
