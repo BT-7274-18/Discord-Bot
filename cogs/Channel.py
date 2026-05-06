@@ -159,8 +159,19 @@ class Channel(commands.Cog):
             return
         # end
 
+        # make sure parent download path still exists
+        if not os.path.exists(self.configs.get_parent_download_path()):
+            await ctx.send("Parent download path no longer exists.")
+            return
+        # end
+
         # all checks passed, add channel to watch list
         add_channel(f"{channelUrl},{"0" if notify is None else "1"},{self.configs.get_parent_download_path() + "/" + channelName},{channelName}")
+
+        # create folder for this channel
+        os.mkdir(f"{self.configs.get_parent_download_path()}/{channelName}")
+
+        await ctx.send(f"{channelName} was added to the watch list.")
     # end
 
     @channel.command(name="list")
@@ -187,14 +198,13 @@ class Channel(commands.Cog):
         
         if verbose is None:
             # send a list of only channel names
-            await ctx.send(f"```{"\n".join([channel.split(",")[-1] for channel in get_channels()])}```")
+            await ctx.send(f"```{"\n".join([channel.split(",")[-1] for channel in channels])}```")
 
         elif verbose in ["-v", "--verbose"]:
             # send a detailed list of channels on the watch list
             # channelName channelUrl Notify: yesNo
 
             # get channels on the watch list
-            channels = get_channels()
             displayStrings = []
 
             nameColWidth = max([len(channel.split(",")[3]) for channel in channels])
