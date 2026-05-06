@@ -1,7 +1,7 @@
 from discord.ext import commands
 from config_getter_setter import Config
-from yt_dlp import YoutubeDL
-import os, yt_dlp
+import os, requests
+from urllib.parse import urlparse
 
 
 def is_youtube_channel(url: str) -> bool:
@@ -15,34 +15,54 @@ def is_youtube_channel(url: str) -> bool:
         True if the url points to a channel or false if not.
     """
 
-    ydl_opts: yt_dlp._Params = {
-        'quiet': True,
-        'skip_download': "True",
-        'extract_flat': True,  # Faster, avoids full extraction
-    }
-
+    CHANNEL_PREFIXES = (
+        "/channel/",
+        "/@",
+        "/c/",
+        "/user/",
+    )
+    
     try:
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-        # end
-
-        # Channels/playlists typically have 'entries'
-        if 'entries' in info:
-            # Additional check: YouTube channel types
-            if info.get('_type') in ('playlist', 'multi_video'):
-                return True
-            # end
-
-        # Some channel URLs still return specific extractor keys
-        if info.get('extractor_key', '').lower() in ('youtubechannel', 'youtubeuser'):
-            return True
-        # end
-
-        return False
-
+            parsed = urlparse(url)
     except Exception:
         return False
     # end
+
+    if parsed.netloc not in {"youtube.com", "www.youtube.com"}:
+        return False
+    # end
+
+    path = parsed.path.rstrip("/")
+    if not path.startswith(CHANNEL_PREFIXES):
+        return False
+    # end
+
+    try:
+        response = requests.get(
+            url,
+            allow_redirects=True,
+            headers={
+                # Avoid bot challenges
+                "User-Agent": "Mozilla/5.0"
+            },
+        )
+    except requests.RequestException:
+        return False
+    # end
+
+    # Must be a successful page
+    if response.status_code != 200:
+        return False
+    # end
+
+    final_path = urlparse(response.url).path
+
+    # YouTube redirects invalid channels to search or home
+    if final_path.startswith("/results") or final_path == "/":
+        return False
+    # end
+
+    return final_path.startswith(CHANNEL_PREFIXES)
 # end
 
 
