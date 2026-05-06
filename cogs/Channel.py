@@ -1,6 +1,6 @@
 from discord.ext import commands
-from pathvalidate import sanitize_filename
 from config_getter_setter import Config
+import os
 
 
 def get_channels() -> list[str]:
@@ -59,6 +59,21 @@ def add_channel(channelStr: str) -> None:
 # end
 
 
+def init_channels():
+    """Creates channel list file if it does not exist."""
+
+    # check if channel list file exists
+    if not os.path.exists("channels.csv"):
+        # channel list file does not exist
+
+        # create empty channel list file
+        with open("channels.csv", "w"):
+            pass
+        # end
+    # end
+# end
+
+
 class EditFlags(commands.FlagConverter, prefix='-', delimiter=" "):
     name: str = commands.flag(aliases=["a"], default=None, description="The new name you want to give the channel you're editing.")
     url: str = commands.flag(aliases=["u"], default=None, description="The new channel url you want to give the channel you're editing.")
@@ -72,6 +87,7 @@ class Channel(commands.Cog):
         self.bot = bot
         self.illegalCharacters = [",", "/", "\\"]
         self.configs = Config()
+        init_channels()
     # end
 
     def contains_illegal_characters(self, st: str) -> bool:
