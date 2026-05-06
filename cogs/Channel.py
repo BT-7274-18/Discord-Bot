@@ -111,8 +111,8 @@ class Channel(commands.Cog):
 
     @channel.command(name="add")
     async def channel_add(self, ctx: commands.Context, 
-        channelName: str | None=None, 
-        channelUrl: str | None=None, 
+        channelName: str | None=None,
+        channelUrl: str | None=None,
         notify: str | None=None
     ):
         """
@@ -173,6 +173,17 @@ class Channel(commands.Cog):
         Options:
             -v | --verbose: Shows channel name, url, and notify status.
         """
+
+        channels = get_channels()
+
+        # check if channels list is empty
+        if channels == []:
+            # channel list is empty
+
+            # tell the user the channel list is empty
+            await ctx.send("No channels on watch list.")
+            return
+        # end
         
         if verbose is None:
             # send a list of only channel names
