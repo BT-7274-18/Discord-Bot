@@ -26,15 +26,25 @@ def sync(func):
 class Config:
     def __init__(self):
         self.fileName = "config.ini"
-
-        if not os.path.exists("config.ini"):
-            raise FileNotFoundError("No config file found.")
-        # end
-
         # stroing section names in attribute so they can be easily changed 
         # and renamed later if needed
         self._parent_video_path = "PARENT VIDEO PATH"
         self._admin = "ADMIN"
+
+        # check if a config file exists
+        if not os.path.exists(self.fileName):
+            # config file does not exist
+
+            # create a new config file from template
+            defaultConfig = configparser.ConfigParser()
+            defaultConfig[self._parent_video_path] = {"path": "YouTube"}
+            defaultConfig[self._admin] = {"bot token": "", "admins": ""}
+
+            # write template config to file
+            with open("config.ini", "w") as writer:
+                defaultConfig.write(writer)
+            # end
+        # end
 
         self._parser = configparser.ConfigParser()
         self._parser.read(self.fileName)
