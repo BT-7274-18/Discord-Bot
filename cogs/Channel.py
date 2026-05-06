@@ -1,7 +1,7 @@
 from discord.ext import commands
 from config_getter_setter import Config
-import os, requests
 from urllib.parse import urlparse
+import os, requests, shutil
 
 
 def is_youtube_channel(url: str) -> bool:
@@ -319,6 +319,12 @@ class Channel(commands.Cog):
             return
         # end
 
+        # make sure new channel name is not on the watch list
+        if flags.name is not None and flags.name in [channel.split(",")[3] for channel in channels]:
+            await ctx.send(f"{flags.name} is already on the watch list.")
+            return
+        # end
+
         # get the channel the user wants to edit
         editChannel = channels[[channel.split(",")[3] for channel in channels].index(name)].split(",")
 
@@ -328,14 +334,38 @@ class Channel(commands.Cog):
             return
         # end
 
+        # update channel name if given
         if flags.name is not None:
+            # make sure parent download directory still exists
+            if not os.path.exists(self.configs.get_parent_download_path()):
+                await ctx.send("Could not find parent download directory.")
+                return
+            # end
+
+            # update channel download directory
+            if os.path.exists(f"{self.configs.get_parent_download_path()}/{editChannel[3]}"):
+                # old download directory still exsits
+
+                # rename old download directory
+                os.rename(f"{self.configs.get_parent_download_path()}/{editChannel[3]}", f"{self.configs.get_parent_download_path()}/{flags.name}")
+
+            else:
+                # old download directory doesn't exist
+
+                # make new download directory
+                os.mkdir(f"{self.configs.get_parent_download_path()}/{flags.name}")
+            # end
+
+            # update channel name
             editChannel[3] = flags.name
         # end
 
+        # update channel url if given
         if flags.url is not None:
             editChannel[0] = flags.url
         # end
 
+        # update notify setting if given
         if flags.notify is not None:
             editChannel[1] = "1" if flags.notify else "0"
         # end
@@ -369,6 +399,13 @@ class Channel(commands.Cog):
         elif channelName in [channel.split(",")[3] for channel in get_channels()]:
             # remove the given channel from the watch list
             remove_channel(channelName)
+
+            # check if channel dir needs to be removed
+            if os.path.exists(f"{self.configs.get_parent_download_path()}/{channelName}"):
+                # channel dir needs to be removed
+                shutil.rmtree(f"{self.configs.get_parent_download_path()}/{channelName}")
+            # end
+
             # tell the user the channel was removed successfully
             await ctx.send(f"Removed {channelName} from the list.")
 
