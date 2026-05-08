@@ -1,6 +1,69 @@
 from discord.ext import commands
-from pathvalidate import sanitize_filename
 from config_getter_setter import Config
+from urllib.parse import urlparse
+import os, requests, shutil
+
+
+def is_youtube_channel(url: str) -> bool:
+    """
+    Verifies that the given url points to a YouTube channel.
+
+    Arguments:
+        url (str): A url that points to a YouTube channel.
+
+    Returns:
+        True if the url points to a channel or false if not.
+    """
+
+    CHANNEL_PREFIXES = (
+        "/channel/",
+        "/@",
+        "/c/",
+        "/user/",
+    )
+    
+    try:
+            parsed = urlparse(url)
+    except Exception:
+        return False
+    # end
+
+    if parsed.netloc not in {"youtube.com", "www.youtube.com"}:
+        return False
+    # end
+
+    path = parsed.path.rstrip("/")
+    if not path.startswith(CHANNEL_PREFIXES):
+        return False
+    # end
+
+    try:
+        response = requests.get(
+            url,
+            allow_redirects=True,
+            headers={
+                # Avoid bot challenges
+                "User-Agent": "Mozilla/5.0"
+            },
+        )
+    except requests.RequestException:
+        return False
+    # end
+
+    # Must be a successful page
+    if response.status_code != 200:
+        return False
+    # end
+
+    final_path = urlparse(response.url).path
+
+    # YouTube redirects invalid channels to search or home
+    if final_path.startswith("/results") or final_path == "/":
+        return False
+    # end
+
+    return final_path.startswith(CHANNEL_PREFIXES)
+# end
 
 
 def get_channels() -> list[str]:
@@ -59,6 +122,21 @@ def add_channel(channelStr: str) -> None:
 # end
 
 
+def init_channels():
+    """Creates channel list file if it does not exist."""
+
+    # check if channel list file exists
+    if not os.path.exists("channels.csv"):
+        # channel list file does not exist
+
+        # create empty channel list file
+        with open("channels.csv", "w"):
+            pass
+        # end
+    # end
+# end
+
+
 class EditFlags(commands.FlagConverter, prefix='-', delimiter=" "):
     name: str = commands.flag(aliases=["a"], default=None, description="The new name you want to give the channel you're editing.")
     url: str = commands.flag(aliases=["u"], default=None, description="The new channel url you want to give the channel you're editing.")
@@ -72,6 +150,7 @@ class Channel(commands.Cog):
         self.bot = bot
         self.illegalCharacters = [",", "/", "\\"]
         self.configs = Config()
+        init_channels()
     # end
 
     def contains_illegal_characters(self, st: str) -> bool:
@@ -95,8 +174,8 @@ class Channel(commands.Cog):
 
     @channel.command(name="add")
     async def channel_add(self, ctx: commands.Context, 
-        channelName: str | None=None, 
-        channelUrl: str | None=None, 
+        channelName: str | None=None,
+        channelUrl: str | None=None,
         notify: str | None=None
     ):
         """
@@ -143,8 +222,25 @@ class Channel(commands.Cog):
             return
         # end
 
+        # make sure parent download path still exists
+        if not os.path.exists(self.configs.get_parent_download_path()):
+            await ctx.send("Parent download path no longer exists.")
+            return
+        # end
+
+        # make sure channel url is valid
+        if not is_youtube_channel(url=channelUrl):
+            await ctx.send("Invalid channel url.")
+            return
+        # end
+
         # all checks passed, add channel to watch list
         add_channel(f"{channelUrl},{"0" if notify is None else "1"},{self.configs.get_parent_download_path() + "/" + channelName},{channelName}")
+
+        # create folder for this channel
+        os.mkdir(f"{self.configs.get_parent_download_path()}/{channelName}")
+
+        await ctx.send(f"{channelName} was added to the watch list.")
     # end
 
     @channel.command(name="list")
@@ -157,17 +253,27 @@ class Channel(commands.Cog):
         Options:
             -v | --verbose: Shows channel name, url, and notify status.
         """
+
+        channels = get_channels()
+
+        # check if channels list is empty
+        if channels == []:
+            # channel list is empty
+
+            # tell the user the channel list is empty
+            await ctx.send("No channels on watch list.")
+            return
+        # end
         
         if verbose is None:
             # send a list of only channel names
-            await ctx.send(f"```{"\n".join([channel.split(",")[-1] for channel in get_channels()])}```")
+            await ctx.send(f"```{"\n".join([channel.split(",")[-1] for channel in channels])}```")
 
         elif verbose in ["-v", "--verbose"]:
             # send a detailed list of channels on the watch list
             # channelName channelUrl Notify: yesNo
 
             # get channels on the watch list
-            channels = get_channels()
             displayStrings = []
 
             nameColWidth = max([len(channel.split(",")[3]) for channel in channels])
@@ -213,6 +319,12 @@ class Channel(commands.Cog):
             return
         # end
 
+        # make sure new channel name is not on the watch list
+        if flags.name is not None and flags.name in [channel.split(",")[3] for channel in channels]:
+            await ctx.send(f"{flags.name} is already on the watch list.")
+            return
+        # end
+
         # get the channel the user wants to edit
         editChannel = channels[[channel.split(",")[3] for channel in channels].index(name)].split(",")
 
@@ -222,14 +334,38 @@ class Channel(commands.Cog):
             return
         # end
 
+        # update channel name if given
         if flags.name is not None:
+            # make sure parent download directory still exists
+            if not os.path.exists(self.configs.get_parent_download_path()):
+                await ctx.send("Could not find parent download directory.")
+                return
+            # end
+
+            # update channel download directory
+            if os.path.exists(f"{self.configs.get_parent_download_path()}/{editChannel[3]}"):
+                # old download directory still exsits
+
+                # rename old download directory
+                os.rename(f"{self.configs.get_parent_download_path()}/{editChannel[3]}", f"{self.configs.get_parent_download_path()}/{flags.name}")
+
+            else:
+                # old download directory doesn't exist
+
+                # make new download directory
+                os.mkdir(f"{self.configs.get_parent_download_path()}/{flags.name}")
+            # end
+
+            # update channel name
             editChannel[3] = flags.name
         # end
 
+        # update channel url if given
         if flags.url is not None:
             editChannel[0] = flags.url
         # end
 
+        # update notify setting if given
         if flags.notify is not None:
             editChannel[1] = "1" if flags.notify else "0"
         # end
@@ -263,6 +399,13 @@ class Channel(commands.Cog):
         elif channelName in [channel.split(",")[3] for channel in get_channels()]:
             # remove the given channel from the watch list
             remove_channel(channelName)
+
+            # check if channel dir needs to be removed
+            if os.path.exists(f"{self.configs.get_parent_download_path()}/{channelName}"):
+                # channel dir needs to be removed
+                shutil.rmtree(f"{self.configs.get_parent_download_path()}/{channelName}")
+            # end
+
             # tell the user the channel was removed successfully
             await ctx.send(f"Removed {channelName} from the list.")
 

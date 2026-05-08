@@ -1,10 +1,8 @@
 from discord.ext import commands
 from getpass import getpass
+from config_getter_setter import Config
 import discord, asyncio, os
 
-
-BOT_TOKEN = getpass("Bot token: ")
-CHANNEL_ID = 1488359282859708600
 
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
@@ -21,9 +19,6 @@ async def load_extensions(client: commands.Bot):
 @bot.event
 async def on_ready():
     print("Hello! Ready to go!")
-    # get the provided discord channel object
-    channel = bot.get_channel(CHANNEL_ID)
-    # await channel.send("Hello! Ready to go!")
 # end
 
 
@@ -67,6 +62,8 @@ async def reload(ctx: commands.Context, arg: str=""):
 if __name__ == "__main__":
     # print(get_channels())
     # start the discord bot
+
+    configs = Config()
     
     asyncio.run(load_extensions(bot))
-    bot.run(BOT_TOKEN)
+    bot.run(configs.get_bot_token())

@@ -1,8 +1,8 @@
 from discord.ext import commands
-from pathvalidate import sanitize_filename
-from pytubefix import AsyncYouTube
 from os import getcwd
-import re, ffmpeg, os
+from config_getter_setter import Config
+from urllib.parse import urlparse, parse_qs
+import re, os, yt_dlp, requests
 
 async def is_valid_video_url(videoUrl: str) -> bool:
     """
@@ -15,18 +15,79 @@ async def is_valid_video_url(videoUrl: str) -> bool:
         True if the url is valid or false if not.
     """
 
-    # try to fetch video metadata
-    try:
-        AsyncYouTube(videoUrl)
-        return True
+    # try:
+    #     ydl_opts: yt_dlp._Params = {
+    #         "cookiefile": "cookies.txt",
+    #         'quiet': True,       # Suppress normal output
+    #         'skip_download': True
+    #     }
+
+    #     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    #         info = ydl.extract_info(videoUrl, download=False)
+    #         # Check if it's a video (not just a playlist or channel)
+    #         if info.get('_type') == 'video' or 'formats' in info:
+    #             return True
+    #         else:
+    #             return False
+    # except Exception:
+    #     return False
+
     
+    try:
+        parsed = urlparse(videoUrl)
     except Exception:
         return False
-    # end
+
+    # Accept both full and short URLs
+    if parsed.netloc not in {
+        "www.youtube.com",
+        "youtube.com",
+        "youtu.be",
+    }:
+        return False
+
+    # Normalize short URLs
+    if parsed.netloc == "youtu.be":
+        video_id = parsed.path.lstrip("/")
+        if not video_id:
+            return False
+        url = f"https://www.youtube.com/watch?v={video_id}"
+        parsed = urlparse(url)
+
+    # Must be a watch URL with a video id
+    if parsed.path != "/watch":
+        return False
+
+    if "v" not in parse_qs(parsed.query):
+        return False
+
+    try:
+        resp = requests.get(
+            videoUrl,
+            allow_redirects=True,
+            headers={
+                "User-Agent": "Mozilla/5.0"
+            },
+        )
+    except requests.RequestException:
+        return False
+
+    if resp.status_code != 200:
+        return False
+
+    final = urlparse(resp.url)
+
+    # YouTube redirects invalid videos to search/home
+    if final.path in {"/", "/results", "/oops"}:
+        return False
+
+    # Valid videos always end on /watch
+    return final.path == "/watch"
+
 # end
 
 
-async def download_video(videoUrl: str, quality: str="360p") -> bool:
+async def download_video(videoUrl: str, downloadDir: str, quality: int=360) -> bool:
     """
     Downloads the given YouTube video
 
@@ -38,56 +99,31 @@ async def download_video(videoUrl: str, quality: str="360p") -> bool:
         True if the video was downloaded or false if there was a problem.
     """
 
-    # get youtube video object
-    yt = AsyncYouTube(videoUrl, use_oauth=True, allow_oauth_cache=True, )
+    params: yt_dlp._Params = {
+        "cookiesfrombrowser": ("chromium",),
+        "format": (
+            f"best[height<={quality}]/"
+            f"bestvideo[height<={quality}]+bestaudio/"
+            f"best"
+        ),
+        "merge_output_format": "mp4",
+        "outtmpl": os.path.join(downloadDir, "%(title)s.%(ext)s"),
+        "user_agent": (
+            "Mozilla/5.0 (X11; Linux armv8l) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/122.0.0.0 Safari/537.36"
+        ),
+        "quiet": True,
+    }
 
-    # get the streams avalible for this video
-    streams = await yt.streams()
 
-    # get the video stream for this video
-    video = streams.filter(
-        adaptive=True,
-        res=quality,
-        mime_type="video/mp4"
-    ).first()
-    # get the audio stream for this video
-    audio = streams.filter(
-        adaptive=True,
-        only_audio=True
-    ).order_by("abr").desc().first()
-
-    # make sure audio and video were fetched successfully
-    if video is None or audio is None:
-        return False
-    # end
-
-    # get the title of the video
-    title = video.title
-
-    # download audio and video streams
-    videoPath = video.download(getcwd(), f"{sanitize_filename(title)} video only.mp4")
-    audioPath = audio.download(getcwd(), f"{sanitize_filename(title)} audio only.mp4")
-
-    # make sure audio and video files were downloaded
-    if videoPath is None or audioPath is None:
-        return False
-
-    # merge audio and video files
     try:
-        inputVideo = ffmpeg.input(videoPath)
-        inputAudio = ffmpeg.input(audioPath)
+        with yt_dlp.YoutubeDL(params) as ydl:
+            ydl.download([videoUrl])
 
-        ffmpeg.concat(inputVideo, inputAudio, v=1, a=1).output(f"{title}.mp4").run(quiet=False)
-
-    except ffmpeg.Error:
-        os.remove(videoPath)
-        os.remove(audioPath)
+    except Exception:
         return False
     # end
-
-    # remove temp files
-    os.remove(videoPath)
-    os.remove(audioPath)
 
     return True
 # end
@@ -96,6 +132,7 @@ async def download_video(videoUrl: str, quality: str="360p") -> bool:
 class Video(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.configs = Config()
     # end
 
     @commands.group(name="video", invoke_without_command=True)
@@ -106,15 +143,14 @@ class Video(commands.Cog):
     # end
 
     @video.command(name="download")
-    async def video_download(self, ctx: commands.Context, url: str | None=None, dir: str | None=None, quality: str | None=None):
+    async def video_download(self, ctx: commands.Context, url: str | None=None, quality: str="360p"):
         """
         Downloads a YouTube video at the given url.
 
-        Useage: download <url> [dir] 
+        Useage: download <url> [quality]
         
         Arguments:
             url: The url of the video you want to download.
-            dir: The directory the video should be downloaded to.
             quality: The quality to download the video at e.g. 360p. Defaults to 360p.
         """
     
@@ -130,11 +166,34 @@ class Video(commands.Cog):
             return
         # end
 
+        # regex patter to only match video quality format e.g. 1080p
+        qualityPattern = re.compile(r"^(144|360|720|1080|1440|2160)p$")
+        # make sure quality is valid if given
+        if quality is not None and (not bool(qualityPattern.search(quality))):
+            await ctx.send("Invalid video quality.")
+            return
+        # end
+
+        # make sure parent download directoriy still exsit
+        if not os.path.exists(self.configs.get_parent_download_path()):
+            await ctx.send("Could not find parent download directory.")
+            return
+        # end
+
+        # create misc. video directory if it doesn't exist
+        if not os.path.exists(f"{self.configs.get_parent_download_path()}/Misc."):
+            # create misc. videos directory
+            os.mkdir(f"{self.configs.get_parent_download_path()}/Misc.")
+        # end
+
         await ctx.send("Downloading video.")
 
         # try to download video
         try:
-            await download_video(url, quality=quality if quality is not None else "360p")
+            if not await download_video(videoUrl=url, downloadDir=f"{self.configs.get_parent_download_path()}/Misc.", quality=int(quality.rstrip("p"))):
+                await ctx.send("Could not download video.")
+                return
+            # end
 
         except Exception as e:
             await ctx.send("Could not download video.")

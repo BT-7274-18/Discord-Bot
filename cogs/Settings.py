@@ -364,12 +364,19 @@ class Settings(commands.Cog):
         # end
 
         if value is None:
+            await ctx.send_help(ctx.command)
             return
         # end
 
-        # make sure the given command is valid
-        if not setting in self.configs.get_sections():
+        # make sure the given section is valid
+        if not settingSection in self.configs.get_sections():
             # given command is not valid
+            await ctx.send(f"{settingSection} is not a valid section.")
+            return
+        # end
+
+        # make sure given setting is valid
+        if not setting in self.configs.get_section_options(settingSection):
             await ctx.send(f"{setting} is not a valid setting.")
             return
         # end
@@ -382,6 +389,12 @@ class Settings(commands.Cog):
             if value != sanitize_filepath(value):
                 # given file path is not valid
                 await ctx.send("File path is not valid.")
+                return
+            # end
+
+            # make sure given path exists
+            if not os.path.exists(value):
+                await ctx.send("Directory does not exists.")
                 return
             # end
 
