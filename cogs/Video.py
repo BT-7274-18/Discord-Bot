@@ -100,7 +100,7 @@ async def download_video(videoUrl: str, downloadDir: str, quality: int=360) -> b
     """
 
     params: yt_dlp._Params = {
-        "cookiefile": "cookies.txt",
+        "cookiesfrombrowser": ("chromium",),
         "format": (
             f"best[height<={quality}]/"
             f"bestvideo[height<={quality}]+bestaudio/"
