@@ -99,18 +99,26 @@ async def download_video(videoUrl: str, downloadDir: str, quality: int=360) -> b
         True if the video was downloaded or false if there was a problem.
     """
 
+    params: yt_dlp._Params = {
+        "cookiesfrombrowser": ("chrome",),
+        "format": (
+            f"best[height<={quality}]/"
+            f"bestvideo[height<={quality}]+bestaudio/"
+            f"best"
+        ),
+        "merge_output_format": "mp4",
+        "outtmpl": os.path.join(downloadDir, "%(title)s.%(ext)s"),
+        "user_agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/122.0.0.0 Safari/537.36"
+        ),
+        "quiet": True,
+    }
+
+
     try:
-        with yt_dlp.YoutubeDL(
-            {
-                "cookiefile": "cookies.txt",
-                "format": (
-                    f"bestvideo[height<={quality}]+bestaudio/"
-                    f"best[height<={quality}]"
-                ),
-                "merge_output_format": "mp4",
-                'outtmpl': os.path.join(downloadDir, '%(title)s.%(ext)s'),
-            }
-        ) as ydl:
+        with yt_dlp.YoutubeDL(params) as ydl:
             ydl.download([videoUrl])
 
     except Exception:
