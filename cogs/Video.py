@@ -103,12 +103,11 @@ async def download_video(videoUrl: str, downloadDir: str, quality: int=360) -> b
         with yt_dlp.YoutubeDL(
             {
                 "cookiefile": "cookies.txt",
-                
                 "format": (
                     f"bestvideo[height<={quality}]+bestaudio/"
                     f"best[height<={quality}]"
                 ),
-
+                "merge_output_format": "mp4",
                 'outtmpl': os.path.join(downloadDir, '%(title)s.%(ext)s'),
             }
         ) as ydl:
