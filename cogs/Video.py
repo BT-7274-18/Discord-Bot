@@ -87,7 +87,7 @@ async def is_valid_video_url(videoUrl: str) -> bool:
 # end
 
 
-async def download_video(videoUrl: str, downloadDir: str, quality: str="360p") -> bool:
+async def download_video(videoUrl: str, downloadDir: str, quality: int=360) -> bool:
     """
     Downloads the given YouTube video
 
@@ -131,7 +131,7 @@ class Video(commands.Cog):
     # end
 
     @video.command(name="download")
-    async def video_download(self, ctx: commands.Context, url: str | None=None, quality: str | None=None):
+    async def video_download(self, ctx: commands.Context, url: str | None=None, quality: str="360p"):
         """
         Downloads a YouTube video at the given url.
 
@@ -178,7 +178,10 @@ class Video(commands.Cog):
 
         # try to download video
         try:
-            await download_video(videoUrl=url, downloadDir=f"{self.configs.get_parent_download_path()}/Misc.", quality=quality if quality is not None else "360p")
+            if not await download_video(videoUrl=url, downloadDir=f"{self.configs.get_parent_download_path()}/Misc.", quality=int(quality.rstrip("p"))):
+                await ctx.send("Could not download video.")
+                return
+            # end
 
         except Exception as e:
             await ctx.send("Could not download video.")
