@@ -1,7 +1,8 @@
 from discord.ext import commands
 from os import getcwd
 from config_getter_setter import Config
-import re, os, yt_dlp
+from urllib.parse import urlparse, parse_qs
+import re, os, yt_dlp, requests
 
 async def is_valid_video_url(videoUrl: str) -> bool:
     """
@@ -14,22 +15,75 @@ async def is_valid_video_url(videoUrl: str) -> bool:
         True if the url is valid or false if not.
     """
 
-    try:
-        ydl_opts: yt_dlp._Params = {
-            "cookiefile": "cookies.txt",
-            'quiet': True,       # Suppress normal output
-            'skip_download': True
-        }
+    # try:
+    #     ydl_opts: yt_dlp._Params = {
+    #         "cookiefile": "cookies.txt",
+    #         'quiet': True,       # Suppress normal output
+    #         'skip_download': True
+    #     }
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(videoUrl, download=False)
-            # Check if it's a video (not just a playlist or channel)
-            if info.get('_type') == 'video' or 'formats' in info:
-                return True
-            else:
-                return False
+    #     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    #         info = ydl.extract_info(videoUrl, download=False)
+    #         # Check if it's a video (not just a playlist or channel)
+    #         if info.get('_type') == 'video' or 'formats' in info:
+    #             return True
+    #         else:
+    #             return False
+    # except Exception:
+    #     return False
+
+    
+    try:
+        parsed = urlparse(videoUrl)
     except Exception:
         return False
+
+    # Accept both full and short URLs
+    if parsed.netloc not in {
+        "www.youtube.com",
+        "youtube.com",
+        "youtu.be",
+    }:
+        return False
+
+    # Normalize short URLs
+    if parsed.netloc == "youtu.be":
+        video_id = parsed.path.lstrip("/")
+        if not video_id:
+            return False
+        url = f"https://www.youtube.com/watch?v={video_id}"
+        parsed = urlparse(url)
+
+    # Must be a watch URL with a video id
+    if parsed.path != "/watch":
+        return False
+
+    if "v" not in parse_qs(parsed.query):
+        return False
+
+    try:
+        resp = requests.get(
+            videoUrl,
+            allow_redirects=True,
+            headers={
+                "User-Agent": "Mozilla/5.0"
+            },
+        )
+    except requests.RequestException:
+        return False
+
+    if resp.status_code != 200:
+        return False
+
+    final = urlparse(resp.url)
+
+    # YouTube redirects invalid videos to search/home
+    if final.path in {"/", "/results", "/oops"}:
+        return False
+
+    # Valid videos always end on /watch
+    return final.path == "/watch"
+
 # end
 
 
