@@ -2,7 +2,9 @@ from discord.ext import commands
 from os import getcwd
 from config_getter_setter import Config
 from urllib.parse import urlparse, parse_qs
-import re, os, yt_dlp, requests
+from modals.request_form import RequestForm
+from discord.app_commands import command
+import re, os, yt_dlp, requests, discord
 
 async def is_valid_video_url(videoUrl: str) -> bool:
     """
@@ -203,6 +205,13 @@ class Video(commands.Cog):
         # end
 
         await ctx.send("Finished downloading video.")
+    # end
+
+    @command(name="request", description="Request media download.")
+    async def video_request(self, interaction: discord.Interaction):
+        """Request that a piece of media be downloaded to the server."""
+    
+        await interaction.response.send_modal(RequestForm())
     # end
 # end
 
