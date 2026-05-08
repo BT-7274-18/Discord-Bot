@@ -118,6 +118,27 @@ class Config:
     # end
 
     @sync
+    def get_requesters(self) -> list[int]:
+        """Gets the list of discord users that are allowed to request downloads. Returns list[int]"""
+
+        requesters = self._parser[self._admin]["requesters"]
+
+        return [int(requester) for requester in requesters if not requester == ""]
+    # end
+
+    @sync
+    def set_requesters(self, requesters: list[int]):
+        """
+        Updates the list of discords users that are allowed to make download requests.
+
+        Arguments:
+            requesters (list[int]): A list of discord id's.
+        """
+
+        self._parser.set(self._admin, option="requesters", value=",".join(str(requesters)))
+    # end
+
+    @sync
     def get_section_options(self, section: str) -> list[str]:
         """Gets a list of all option names in a section as a list."""
 
@@ -195,9 +216,7 @@ class Config:
         admins = self._parser.get(section=self._admin, option="admins").split(",")
 
         # remove empty strings and convert non-empty strings to integers
-        admins = [int(admin) for admin in admins if admin != ""]
-
-        return admins
+        return [int(admin) for admin in admins if admin != ""]
     # end    
 # end
 
