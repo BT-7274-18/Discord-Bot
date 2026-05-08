@@ -1,5 +1,4 @@
 from discord.ext import commands
-from getpass import getpass
 from config_getter_setter import Config
 import discord, asyncio, os
 
