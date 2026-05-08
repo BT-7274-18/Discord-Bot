@@ -31,23 +31,51 @@ class Config:
         self._parent_video_path = "PARENT VIDEO PATH"
         self._admin = "ADMIN"
 
+        # default config options
+        defaultConfig = configparser.ConfigParser()
+        defaultConfig[self._parent_video_path] = {"path": "YouTube"}
+        defaultConfig[self._admin] = {"bot token": "", "admins": "", "requesters": ""}
+
         # check if a config file exists
         if not os.path.exists(self.fileName):
             # config file does not exist
-
-            # create a new config file from template
-            defaultConfig = configparser.ConfigParser()
-            defaultConfig[self._parent_video_path] = {"path": "YouTube"}
-            defaultConfig[self._admin] = {"bot token": "", "admins": ""}
 
             # write template config to file
             with open("config.ini", "w") as writer:
                 defaultConfig.write(writer)
             # end
-        # end
 
         self._parser = configparser.ConfigParser()
         self._parser.read(self.fileName)
+
+        # check for missing sections
+        currentSections = self._parser.sections()
+        for defaultSection in defaultConfig.sections():
+            if not defaultSection in currentSections:
+                # section is not in this config file
+                
+                # add the default section
+                self._parser[defaultSection] = defaultConfig[defaultSection]
+
+            else:
+                # this section is in the config file
+
+                # make sure all settings are in this section
+                for option in defaultConfig[defaultSection].keys():
+                    if not option in self._parser[defaultSection].keys():
+                        # this setting is not in this section
+
+                        # add this setting to this section
+                        self._parser[defaultSection][option] = defaultConfig[defaultSection][option]
+                    # end
+                # end
+            # end
+        # end
+
+        # save any changes that may have happened
+        with open(self.fileName, "w") as writer:
+            self._parser.write(writer)
+        # end
     # end
 
     @sync
@@ -80,36 +108,6 @@ class Config:
 
         # section and key are valid
         return self._parser.get(section=section, option=setting)
-    # end
-
-    @sync
-    def set_setting(self, section: str, setting: str, value: str):
-        """
-        Updates a value at the given section setting pair.
-
-        Arguments:
-            section (str): The name of the section that contains the setting you want to update.
-            setting (str): The name of the setting you want to update.
-            value (str): The value you want to change the given setting to.
-
-        Raises:
-            KeyError if the given section or setting names are not in the config file.
-        """
-
-        # check if given section if valid
-        if not section in self._parser.sections():
-            # given section is not valid
-            raise KeyError("Invalid section.")
-        # end
-
-        # check if given setting is valid
-        if not setting in self._parser[section].keys():
-            # given setting is not valid
-            raise KeyError("Invalid setting.")
-        # end
-
-        # section and setting pair is valid
-        self._parser.set(section=section, option=setting, value=value)
     # end
 
     @sync
