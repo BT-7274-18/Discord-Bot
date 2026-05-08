@@ -2,9 +2,7 @@ from discord.ext import commands
 from os import getcwd
 from config_getter_setter import Config
 from urllib.parse import urlparse, parse_qs
-from modals.request_form import RequestForm
-from discord.app_commands import command
-import re, os, yt_dlp, requests, discord
+import re, os, yt_dlp, requests
 
 async def is_valid_video_url(videoUrl: str) -> bool:
     """
@@ -16,24 +14,6 @@ async def is_valid_video_url(videoUrl: str) -> bool:
     Returns:
         True if the url is valid or false if not.
     """
-
-    # try:
-    #     ydl_opts: yt_dlp._Params = {
-    #         "cookiefile": "cookies.txt",
-    #         'quiet': True,       # Suppress normal output
-    #         'skip_download': True
-    #     }
-
-    #     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-    #         info = ydl.extract_info(videoUrl, download=False)
-    #         # Check if it's a video (not just a playlist or channel)
-    #         if info.get('_type') == 'video' or 'formats' in info:
-    #             return True
-    #         else:
-    #             return False
-    # except Exception:
-    #     return False
-
     
     try:
         parsed = urlparse(videoUrl)
@@ -205,13 +185,6 @@ class Video(commands.Cog):
         # end
 
         await ctx.send("Finished downloading video.")
-    # end
-
-    @command(name="request", description="Request media download.")
-    async def video_request(self, interaction: discord.Interaction):
-        """Request that a piece of media be downloaded to the server."""
-    
-        await interaction.response.send_modal(RequestForm())
     # end
 # end
 
