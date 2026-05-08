@@ -17,6 +17,7 @@ async def load_extensions(client: commands.Bot):
 
 @bot.event
 async def on_ready():
+    await bot.tree.sync()
     print("Hello! Ready to go!")
 # end
 
