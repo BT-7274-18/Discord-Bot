@@ -109,7 +109,7 @@ async def download_video(videoUrl: str, downloadDir: str, quality: int=360) -> b
         "merge_output_format": "mp4",
         "outtmpl": os.path.join(downloadDir, "%(title)s.%(ext)s"),
         "user_agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "Mozilla/5.0 (X11; Linux armv8l) "
             "AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/122.0.0.0 Safari/537.36"
         ),
