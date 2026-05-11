@@ -9,8 +9,7 @@ class RequestForm(discord.ui.Modal, title="Request Form"):
     comment = discord.ui.TextInput(label="Comment", required=False)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        interaction.created_at
-        add_request(interaction.user.id, self.mediaTitle.value, self.url.value, self.comment.value)
+        add_request(interaction.user.id, self.mediaTitle.value, self.url.value, self.comment.value, interaction.created_at)
 
         await interaction.response.send_message("Request submitted.")
     # end
