@@ -1,8 +1,8 @@
 from discord.ext import commands
 from os import getcwd
-from config_getter_setter import Config
+from modules.config_getter_setter import Config
 from urllib.parse import urlparse, parse_qs
-import re, os, yt_dlp, requests
+import re, os, yt_dlp, modules.requests as requests
 
 async def is_valid_video_url(videoUrl: str) -> bool:
     """

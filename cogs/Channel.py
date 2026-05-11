@@ -1,7 +1,7 @@
 from discord.ext import commands
-from config_getter_setter import Config
+from modules.config_getter_setter import Config
 from urllib.parse import urlparse
-import os, requests, shutil
+import os, modules.requests as requests, shutil
 
 
 def is_youtube_channel(url: str) -> bool:

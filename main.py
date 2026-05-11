@@ -1,5 +1,5 @@
 from discord.ext import commands
-from config_getter_setter import Config
+from modules.config_getter_setter import Config
 import discord, asyncio, os
 
 

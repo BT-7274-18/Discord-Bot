@@ -1,6 +1,6 @@
 import discord
 import datetime
-from requests import add_request
+from modules.requests import add_request
 
 
 class RequestForm(discord.ui.Modal, title="Request Form"):

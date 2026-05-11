@@ -51,7 +51,14 @@ def get_requests() -> list[Request]:
     Gets all unfullfilled requests from requests file.
 
     Returns:
-        list[dict["requesterId": int, "mediaTitle": str, "url": str, "comment": str, "createdOn": datetime.datetime]]
+        list[Request[
+            "requesterId": int, 
+            "mediaTitle": str, 
+            "url": str, 
+            "comment": str, 
+            "createdOn": datetime.datetime
+        ]]: 
+        A list of dicts containing requests.
     """
     
     # create a requests file with headers if none exists

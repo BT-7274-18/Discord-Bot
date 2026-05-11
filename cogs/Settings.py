@@ -1,7 +1,7 @@
 from discord.ext import commands
 import discord
 from asyncio import TimeoutError
-from config_getter_setter import Config
+from modules.config_getter_setter import Config
 from pathvalidate import sanitize_filepath
 import configparser, os
 
