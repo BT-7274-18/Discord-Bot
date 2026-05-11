@@ -4,6 +4,14 @@ from typing import TypedDict
 
 # class for typing requests dict
 class Request(TypedDict):
+    """
+    requesterId: int
+    mediaTitle: str
+    url: str
+    comment: str
+    createdOn: datetime.datetime
+    """
+
     requesterId: int
     mediaTitle: str
     url: str
