@@ -5,11 +5,11 @@ from typing import TypedDict
 # class for typing requests dict
 class Request(TypedDict):
     """
-    requesterId: int
-    mediaTitle: str
-    url: str
-    comment: str
-    createdOn: datetime.datetime
+    requesterId: int,
+    mediaTitle: str,
+    url: str,
+    comment: str,
+    createdOn: datetime.datetime,
     """
 
     requesterId: int
@@ -105,6 +105,6 @@ def add_request(requesterId: int, mediaTitle: str, url: str, comment: str, creat
 
     # save changes to the requests file
     with open("requests.csv", "w") as writer:
-        writer.write("\n".join([",".join(row.keys()) for row in requests]))
+        writer.write("\n".join([",".join(list(row.keys())) for row in requests]))
     # end
 # end
