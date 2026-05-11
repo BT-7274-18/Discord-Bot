@@ -1,31 +1,69 @@
-import datetime
+import datetime, os, csv
+from typing import TypedDict
 
 
-def get_requests() -> list[list[str|int|datetime.datetime]]:
+# class for typing requests dict
+class Request(TypedDict):
+    requesterId: int
+    mediaTitle: str
+    url: str
+    comment: str
+    createdOn: datetime.datetime
+# end
+
+
+def convert_to_typed_dict(data: csv.DictReader[str]) -> list[Request]:
+    """
+    Converts a csv.DictReader object to a request dict for type checking.
+
+    Arguments:
+        data (csv.DictReader[str]): A dict reader object reading from the requests file.
+
+    Returns:
+        list[Request[
+            "requesterId": int, 
+            "mediaTitle": str, 
+            "url": str, 
+            "comment": str, 
+            "createdOn": datetime.datetime
+        ]]: 
+        A list of dicts containing requests.
+    """
+
+    convertedDicts = []
+
+    for row in data:
+        convertedDicts.append(Request(
+            requesterId=int(row["requesterId"]),
+            mediaTitle=row["mediaTitle"],
+            url=row["url"],
+            comment=row["comment"],
+            createdOn=datetime.datetime.strptime(row["createdOn"], "%m-%d-%y")
+        ))
+    # end
+
+    return convertedDicts
+# end
+
+
+def get_requests() -> list[Request]:
     """
     Gets all unfullfilled requests from requests file.
 
     Returns:
-        list[list]. List of requests in the format of [[requesterId: int, mediaTitle: str, url: str, comment: str, createdOn: datetime.datetime], ...]
+        list[dict["requesterId": int, "mediaTitle": str, "url": str, "comment": str, "createdOn": datetime.datetime]]
     """
-    requests = []
-
-    # open requests file
-    with open("requests.csv", "r") as reader:
-        line = reader.readline()[:-1]
-
-        while line:
-            # add each line to requests list
-            requests.append(line.split(","))
-            line = reader.readline()[:-1]
+    
+    # create a requests file with headers if none exists
+    if not os.path.exists("requests.csv"):
+        with open("requests.csv", "w") as writer:
+            writer.write("requesterId,mediaTitle,url,comment,createdOn")
         # end
     # end
 
-    # convert requesterId to integer
-    # convert created date to datetime object
-    for i in range(len(requests)):
-        requests[i][0] = int(requests[i][0])
-        requests[i][4] = datetime.datetime.strptime(requests[i][4], "%m-%d-%y")
+    # open requests file
+    with open("requests.csv", "r") as reader:
+        requests = convert_to_typed_dict(csv.DictReader(reader))
     # end
 
     return requests
@@ -47,18 +85,11 @@ def add_request(requesterId: int, mediaTitle: str, url: str, comment: str, creat
     # get the current requests
     requests = get_requests()
 
-    convertedRequests = []
-    # convert requesterIds to a string
-    for i in range(len(requests)):
-        requests[i][0] = str(requests[i][0])
-        convertedRequests.append(requests[i])
-    # end
-
     # add the given request to the current requests
-    convertedRequests.append([str(requesterId), mediaTitle, url, comment, createdAt.strftime("%m-%d-%y")])
+    requests.append(Request(requesterId=requesterId, mediaTitle=mediaTitle, url=url, comment=comment, createdOn=createdAt))
 
     # save changes to the requests file
     with open("requests.csv", "w") as writer:
-        writer.write("\n".join([",".join(currRequest) for currRequest in convertedRequests]))
+        writer.write("\n".join([",".join(currRequest) for currRequest in requests]))
     # end
 # end
