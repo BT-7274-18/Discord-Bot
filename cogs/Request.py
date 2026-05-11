@@ -45,12 +45,34 @@ class Request(commands.Cog):
             return
         # end
 
-        # use a list to format strings later
-        outputStrings = [" ".join(list(requests[0].keys()))]
+        # use a list of column headers and items to calculate width of each column
+        items = [["Requester Id", "Media Title", "Url", "Created On"]]
 
         # add each request to output strings
         for request in requests:
-            outputStrings.append(f"{request['requesterId']} {request['mediaTitle']} {request['url']} {request['comment']} {request['createdOn']}")
+            items.append([str(request['requesterId']), request['mediaTitle'], request['url'], request['createdOn'].strftime("%m-%d-%y")])
+        # end
+
+        colWidths = []
+
+        # get the widest item in each column for formatting
+        for i in range(len(items[0])):
+            colWidths.append(max([len(row[i]) for row in items]))
+        # end
+
+        # apply column width formatting to each item
+        for i in range(len(colWidths)):
+            for row in items:
+                row[i].ljust(colWidths[i])
+            # end
+        # end
+
+        # use list of strigns to join later
+        outputStrings = []
+
+        # join each row
+        for i in range(len(items)):
+            outputStrings.append(" ".join(items[i]))
         # end
 
         # send open requests formatted in a code block

@@ -46,7 +46,7 @@ def convert_to_typed_dict(data: csv.DictReader[str]) -> list[Request]:
             mediaTitle=row["mediaTitle"],
             url=row["url"],
             comment=row["comment"],
-            createdOn=row["createdOn"]
+            createdOn=row["createdOn"] # type: ignore
         ))
     # end
 
