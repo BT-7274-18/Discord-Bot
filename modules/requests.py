@@ -70,7 +70,7 @@ def flatten_requests(data: list[Request]) -> list[dict[str, str]]:
     for request in data:
         flattenedRequest = {}
         for key in request.keys():
-            flattenedRequest[key: str(request[key]) if not type(request[key]) == datetime.datetime else request[key].strftime("%m-%d-%y")]
+            flattenedRequest[key] = request[key].strftime("%m-%d-%y") if type(request[key]) == datetime.datetime else str(request[key])
         # end
 
         flattenedRequests.append(flattenedRequest)
