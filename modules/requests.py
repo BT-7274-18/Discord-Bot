@@ -22,7 +22,7 @@ class Request(TypedDict):
 
 def convert_to_typed_dict(data: csv.DictReader[str]) -> list[Request]:
     """
-    Converts a csv.DictReader object to a request dict for type checking.
+    Converts a csv.DictReader object to a list of Request dicts for type checking.
 
     Arguments:
         data (csv.DictReader[str]): A dict reader object reading from the requests file.
@@ -105,6 +105,6 @@ def add_request(requesterId: int, mediaTitle: str, url: str, comment: str, creat
 
     # save changes to the requests file
     with open("requests.csv", "w") as writer:
-        writer.write("\n".join([",".join(currRequest) for currRequest in requests]))
+        writer.write("\n".join([",".join(row.keys()) for row in requests]))
     # end
 # end
