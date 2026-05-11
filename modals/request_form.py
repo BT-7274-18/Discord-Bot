@@ -1,10 +1,15 @@
 import discord
+from requests import add_request
 
 
 class RequestForm(discord.ui.Modal, title="Request Form"):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    mediaTitle = discord.ui.TextInput(label="Media Title", required=True)
+    url = discord.ui.TextInput(label="Url", required=True)
+    comment = discord.ui.TextInput(label="Comment", required=False)
 
-        self.add_item(discord.ui.TextInput(label="Media Title"))
-        self.add_item(discord.ui.TextInput(label="Url", default="Url to media information."))
-        self.add_item(discord.ui.TextInput(label="Comment"))
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        add_request(interaction.user.id, self.mediaTitle.value, self.url.value, self.comment.value)
+
+        await interaction.response.send_message("Request submitted.")
+    # end
+# end
