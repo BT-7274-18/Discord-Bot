@@ -105,6 +105,11 @@ def add_request(requesterId: int, mediaTitle: str, url: str, comment: str, creat
 
     # save changes to the requests file
     with open("requests.csv", "w") as writer:
-        writer.write("\n".join([",".join(list(row.keys())) for row in requests]))
+        # create csv writter
+        writer = csv.DictWriter(writer, fieldnames=requests[0].keys())
+        # writer csv headers
+        writer.writeheader()
+        # write request data
+        writer.writerows(requests)
     # end
 # end
