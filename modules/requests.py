@@ -54,6 +54,29 @@ def convert_to_typed_dict(data: csv.DictReader[str]) -> list[Request]:
 # end
 
 
+def flatten_requests(data: list[Request]) -> list[dict[str, str]]:
+    """
+    Converts a list of Request TypedDicts into normal dicts.
+
+    Arguments:
+        data: list[Request]: A list of TypedDicts to convert to normal dicts.
+
+    Returns:
+        list[dict[str, str]]: A list of normal dicts.
+    """
+
+    flattenedRequests: list[dict[str, str]] = []
+
+    for request in data:
+        for key in request.keys():
+            flattenedRequests.append({key: str(request[key]) if not type(request[key]) == datetime.datetime else request[key].strftime("%m-%d-%y")})
+        # end
+    # end
+
+    return flattenedRequests
+# end
+
+
 def get_requests() -> list[Request]:
     """
     Gets all unfullfilled requests from requests file.
