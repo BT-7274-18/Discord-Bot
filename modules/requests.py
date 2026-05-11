@@ -46,7 +46,7 @@ def convert_to_typed_dict(data: csv.DictReader[str]) -> list[Request]:
             mediaTitle=row["mediaTitle"],
             url=row["url"],
             comment=row["comment"],
-            createdOn=row["createdOn"].strptime("%m-%d-%y") #type: ignore
+            createdOn=datetime.datetime.strptime(row["createdOn"], "%m-%d-%y")
         ))
     # end
 
@@ -68,9 +68,12 @@ def flatten_requests(data: list[Request]) -> list[dict[str, str]]:
     flattenedRequests: list[dict[str, str]] = []
 
     for request in data:
+        flattenedRequest = {}
         for key in request.keys():
-            flattenedRequests.append({key: str(request[key]) if not type(request[key]) == datetime.datetime else request[key].strftime("%m-%d-%y")})
+            flattenedRequest[key: str(request[key]) if not type(request[key]) == datetime.datetime else request[key].strftime("%m-%d-%y")]
         # end
+
+        flattenedRequests.append(flattenedRequest)
     # end
 
     return flattenedRequests
@@ -126,6 +129,8 @@ def add_request(requesterId: int, mediaTitle: str, url: str, comment: str, creat
     # add the given request to the current requests
     requests.append(Request(requesterId=requesterId, mediaTitle=mediaTitle, url=url, comment=comment, createdOn=createdAt))
 
+    flattendRequests = flatten_requests(requests)
+
     # save changes to the requests file
     with open("requests.csv", "w") as writer:
         # create csv writter
@@ -133,6 +138,11 @@ def add_request(requesterId: int, mediaTitle: str, url: str, comment: str, creat
         # writer csv headers
         writer.writeheader()
         # write request data
-        writer.writerows(requests)
+        writer.writerows(flattendRequests)
     # end
+# end
+
+
+if __name__ == "__main__":
+    pass
 # end
