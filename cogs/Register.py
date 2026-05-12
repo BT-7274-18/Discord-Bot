@@ -8,7 +8,7 @@ class Register(commands.Cog):
         self.configs = Config()
     # end
 
-    async def is_valid_user_id(self, userId) -> bool:
+    async def is_valid_user_id(self, userId: int) -> bool:
         """
         Validates the given discord user id
 
@@ -22,7 +22,7 @@ class Register(commands.Cog):
         if await self.bot.fetch_user(userId) is None:
             return False
         else:
-            return False
+            return True
         # end
     # end
 
@@ -45,6 +45,7 @@ class Register(commands.Cog):
         else:
             userId = member
             displayName = member
+        # end
 
         # make sure the given user id is valid
         if not await self.is_valid_user_id(userId):
@@ -55,6 +56,13 @@ class Register(commands.Cog):
 
         # get the current requesters
         requesters = self.configs.get_requesters()
+
+        # make sure the given user is not already a requester
+        if userId in requesters:
+            # the given user is already on the requesters list
+            await ctx.send(f"{displayName} is already a requester.")
+            return
+        # end
 
         # add the given user id to requesters list
         requesters.append(userId)
