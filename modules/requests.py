@@ -17,6 +17,27 @@ class Request(TypedDict):
     url: str
     comment: str
     createdOn: datetime.datetime
+    requestId: int
+# end
+
+
+def generate_id(currentIds: list[int]) -> int:
+    """
+    Generates a unique id based on existing id's.
+
+    Arguments:
+        currentIds (list[int]): A list of id's that are already taken.
+
+    Returns:
+        int: An id that is not in the given list of id's.
+    """
+
+    newId: int
+    for i in range(len(currentIds) + 1):
+        if not i in currentIds: newId = i
+    # end
+
+    return newId # type: ignore
 # end
 
 
@@ -46,7 +67,8 @@ def convert_to_typed_dict(data: csv.DictReader[str]) -> list[Request]:
             mediaTitle=row["mediaTitle"],
             url=row["url"],
             comment=row["comment"],
-            createdOn=datetime.datetime.strptime(row["createdOn"], "%m-%d-%y")
+            createdOn=datetime.datetime.strptime(row["createdOn"], "%m-%d-%y"),
+            requestId=int(row["requestId"])
         ))
     # end
 
@@ -91,6 +113,7 @@ def get_requests() -> list[Request]:
             "url": str, 
             "comment": str, 
             "createdOn": datetime.datetime
+            "requestId": int
         ]]: 
         A list of dicts containing requests.
     """
@@ -98,7 +121,7 @@ def get_requests() -> list[Request]:
     # create a requests file with headers if none exists
     if not os.path.exists("requests.csv"):
         with open("requests.csv", "w") as writer:
-            writer.write("requesterId,mediaTitle,url,comment,createdOn")
+            writer.write("requesterId,mediaTitle,url,comment,createdOn,requestId")
         # end
     # end
 
@@ -127,7 +150,14 @@ def add_request(requesterId: int, mediaTitle: str, url: str, comment: str, creat
     requests = get_requests()
 
     # add the given request to the current requests
-    requests.append(Request(requesterId=requesterId, mediaTitle=mediaTitle, url=url, comment=comment, createdOn=createdAt))
+    requests.append(Request(
+        requesterId=requesterId,
+        mediaTitle=mediaTitle,
+        url=url,
+        comment=comment,
+        createdOn=createdAt,
+        requestId=generate_id([request["requestId"] for request in requests])
+    ))
 
     flattendRequests = flatten_requests(requests)
 

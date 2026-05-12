@@ -46,11 +46,11 @@ class Request(commands.Cog):
         # end
 
         # use a list of column headers and items to calculate width of each column
-        items = [["Requester Id", "Media Title", "Url", "Created On"]]
+        items = [["Request Id", "Requester Id", "Media Title", "Url", "Created On"]]
 
         # add each request to output strings
         for request in requests:
-            items.append([str(request['requesterId']), request['mediaTitle'], request['url'], request['createdOn'].strftime("%m-%d-%y")])
+            items.append([str(request["requestId"]), str(request['requesterId']), request['mediaTitle'], request['url'], request['createdOn'].strftime("%m-%d-%y")])
         # end
 
         colWidths = []
@@ -72,7 +72,7 @@ class Request(commands.Cog):
 
         # join each row
         for i in range(len(items)):
-            outputStrings.append(" ".join(items[i]))
+            outputStrings.append("  ".join(items[i]))
         # end
 
         # send open requests formatted in a code block
