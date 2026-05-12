@@ -134,7 +134,7 @@ class Request(commands.Cog):
             return
         # end
 
-        # remove request from requsts file
+        # remove request from requests file
         remove_request(id=id)
 
         # send confirmation
@@ -145,6 +145,47 @@ class Request(commands.Cog):
 
         # send conformation to requester that their request was fulfilled
         await requester.send(f"Your request to download {request["mediaTitle"]} has been fulfilled.{f"\nWith comment:\n{comment}" if comment is not None else ""}")
+    # end
+
+    @requests.command(name="deny")
+    async def requests_deny(self, ctx: commands.Context, id: int, comment: str | None=None):
+        """
+        Denies a request with the given id and sends a message to the requester with the optional comment.
+
+        Useage: deny <id> [comment]
+
+        Arguments:
+            id:      The id of the request to deny.
+            comment: A comment that will be sent with the confirmation message.
+        """
+
+        # get all open requests
+        requests = get_requests()
+    
+        # get the request with the given id
+        request = 0
+        for req in requests:
+            if req["requestId"] == id: request = req
+        # end
+
+        # check if a request was found
+        if request == 0:
+                # there are no requests with the given id
+                await ctx.send("Invalid id.")
+                return
+        # end
+
+        # remove the request from the requests file
+        remove_request(id=id)
+
+        # send confirmation that request was denied
+        await ctx.send("Request was denied.")
+
+        # fetch the discord user that sent the request
+        requester = await self.bot.fetch_user(request["requesterId"])
+
+        # send confirmation message
+        await requester.send(f"Your request to download {request['mediaTitle']} was denied.{f"\nWith comment: {comment}" if comment is not None else ""}")
     # end
 # end
 
