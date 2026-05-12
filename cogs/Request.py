@@ -69,7 +69,7 @@ class Request(commands.Cog):
             # end
 
             # display request information
-            await ctx.send(f"Requester Id: {request['requesterId']}\nMedia Title: {request['mediaTitle']}\nUrl: {request['url']}\nCreated On: {request['createdOn']}\nComment:\n{request['comment']}")
+            await ctx.send(f"```Requester Id: {request['requesterId']}\nMedia Title: {request['mediaTitle']}\nUrl: {request['url']}\nCreated On: {request['createdOn']}\nComment:\n{request['comment']}```")
             return
         # end
 
