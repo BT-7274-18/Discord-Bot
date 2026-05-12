@@ -1,29 +1,60 @@
 import discord
 from discord.ext import commands
+from modules.config_getter_setter import Config
 
 class Register(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.configs = Config()
     # end
 
-    @commands.Cog.listener()
-    async def on_message(self, message: discord.Message):
-        # ignore messages from the bot itself
-        if message.author == self.bot.user:
-            # incoming message is from the bot
+    def is_valid_user_id(self, userId: int) -> bool:
+        """
+        Validates the given discord user id
+
+        Arguments:
+            userId (int): A discord user id to validate.
+
+        Returns:
+            True if the given user Id points to a discord user or false if it's invalid.
+        """
+
+        if self.bot.fetch_user(userId) is None:
+            return False
+        else:
+            return False
+        # end
+    # end
+
+    @commands.command()
+    async def register(self, ctx: commands.Context, id: int):
+        """
+        Registers the given user as a requester.
+
+        Useage: register <id>
+
+        Arguments:
+            id: The user id of the user you want to add as a requester.
+        """
+
+        # make sure the given user id is valid
+        if not self.is_valid_user_id(id):
+            # the given user id is invalid
+            await ctx.send("Invalid user id.")
             return
         # end
 
-        # make sure the incoming message is a DM
-        if not isinstance(message.channel, discord.DMChannel):
-            # this is not a dm channel
-            return
-        # end
+        # get the current requesters
+        requesters = self.configs.get_requesters()
 
-        await message.channel.send("Responding to non-command dm.")
+        # add the given user id to requesters list
+        requesters.append(id)
 
-        # make sure commands can still be sent in DMs
-        await self.bot.process_commands(message)
+        # save the new requesters to file
+        self.configs.set_requesters(requesters=requesters)
+
+        # send confirmation message
+        await ctx.send(f"{id} added to requesters list.")
     # end
 # end
 
