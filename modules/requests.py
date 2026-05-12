@@ -186,6 +186,7 @@ def remove_request(id: int):
     for i in range(len(requests)):
         if requests[i]["requestId"] == id:
             requests.pop(i)
+            break
         # end
     # end
 # end
