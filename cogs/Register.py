@@ -8,7 +8,7 @@ class Register(commands.Cog):
         self.configs = Config()
     # end
 
-    def is_valid_user_id(self, userId) -> bool:
+    async def is_valid_user_id(self, userId) -> bool:
         """
         Validates the given discord user id
 
@@ -19,7 +19,7 @@ class Register(commands.Cog):
             True if the given user Id points to a discord user or false if it's invalid.
         """
 
-        if self.bot.fetch_user(userId) is None:
+        if await self.bot.fetch_user(userId) is None:
             return False
         else:
             return False
@@ -47,7 +47,7 @@ class Register(commands.Cog):
             displayName = member
 
         # make sure the given user id is valid
-        if not self.is_valid_user_id(userId):
+        if not await self.is_valid_user_id(userId):
             # the given user id is invalid
             await ctx.send("Invalid user id.")
             return
