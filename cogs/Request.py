@@ -1,6 +1,6 @@
 from discord.ext import commands
 from modals.request_form import RequestForm
-from modules.requests import get_requests
+from modules.requests import get_requests, remove_request
 import discord, os
 
 class Request(commands.Cog):
@@ -105,6 +105,46 @@ class Request(commands.Cog):
 
         # send open requests formatted in a code block
         await ctx.send(f"```{"\n".join(outputStrings)}```")
+    # end
+
+    @requests.command(name="fulfill")
+    async def request_fulfill(self, ctx: commands.Context, id: int, comment: str | None=None):
+        """
+        Marks a download request as fulfilled and sends a message to the requester.
+
+        Useage: fulfill <id> [comment]
+
+        Arguments:
+            id:      The id of the request to mark as fulfilled.
+            comment: A comment that will be sent to the requester with the conformation message.
+        """
+    
+        requests = get_requests()
+
+        # find the request with a matching id
+        request = 0
+        for req in requests:
+            if req["requestId"] == id: request = req
+        # end
+
+        # make sure a request was found
+        if request == 0:
+            # the given id is invalid
+            await ctx.send("Invalid request id.")
+            return
+        # end
+
+        # remove request from requsts file
+        remove_request(id=id)
+
+        # send confirmation
+        await ctx.send("Request has been marked fulfilled.")
+
+        # get the user object of the requester
+        requester = await self.bot.fetch_user(request["requesterId"])
+
+        # send conformation to requester that their request was fulfilled
+        await requester.send(f"Your request to download {request["mediaTitle"]} has been fulfilled.{f"\nWith comment:\n{comment}" if comment is not None else ""}")
     # end
 # end
 
