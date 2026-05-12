@@ -101,6 +101,27 @@ def flatten_requests(data: list[Request]) -> list[dict[str, str]]:
     return flattenedRequests
 # end
 
+def save_requests(data: list[Request]):
+    """
+    Writes the give request data to file
+
+    Arguments:
+        data (list[Request]): A list of requests dicts
+    """
+
+    flattendRequests = flatten_requests(data)
+
+    # save changes to the requests file
+    with open("requests.csv", "w") as writer:
+        # create csv writter
+        writer = csv.DictWriter(writer, fieldnames=data[0].keys())
+        # writer csv headers
+        writer.writeheader()
+        # write request data
+        writer.writerows(flattendRequests)
+    # end
+# end
+
 
 def get_requests() -> list[Request]:
     """
@@ -159,17 +180,7 @@ def add_request(requesterId: int, mediaTitle: str, url: str, comment: str, creat
         requestId=generate_id([request["requestId"] for request in requests])
     ))
 
-    flattendRequests = flatten_requests(requests)
-
-    # save changes to the requests file
-    with open("requests.csv", "w") as writer:
-        # create csv writter
-        writer = csv.DictWriter(writer, fieldnames=requests[0].keys())
-        # writer csv headers
-        writer.writeheader()
-        # write request data
-        writer.writerows(flattendRequests)
-    # end
+    save_requests(requests)
 # end
 
 
@@ -181,14 +192,20 @@ def remove_request(id: int):
         id (int): The id of the request to be removed.
     """
 
+    # get the current requests
     requests = get_requests()
 
+    # look for the request with the given id
     for i in range(len(requests)):
         if requests[i]["requestId"] == id:
+            # remove the request with the given id
             requests.pop(i)
             break
         # end
     # end
+
+    # save changes
+    save_requests(requests)
 # end
 
 
