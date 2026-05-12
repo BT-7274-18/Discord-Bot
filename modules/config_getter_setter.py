@@ -119,9 +119,9 @@ class Config:
 
     @sync
     def get_requesters(self) -> list[int]:
-        """Gets the list of discord users that are allowed to request downloads. Returns list[int]"""
+        """Gets the list of discord user id's that are allowed to request downloads. Returns list[int]"""
 
-        requesters = self._parser[self._admin]["requesters"]
+        requesters = self._parser[self._admin]["requesters"].split(",")
 
         return [int(requester) for requester in requesters if not requester == ""]
     # end
@@ -132,7 +132,7 @@ class Config:
         Updates the list of discords users that are allowed to make download requests.
 
         Arguments:
-            requesters (list[int]): A list of discord id's.
+            requesters (list[int]): A list of discord user id's.
         """
 
         self._parser.set(self._admin, option="requesters", value=",".join([str(requester) for requester in requesters]))
@@ -224,6 +224,5 @@ class Config:
 if __name__ == "__main__":
     config = Config()
 
-    print(config.get_all_option_names())
-    print(config.get_all_option_values())
+    print(config.get_requesters())
 # end
