@@ -135,7 +135,7 @@ class Config:
             requesters (list[int]): A list of discord id's.
         """
 
-        self._parser.set(self._admin, option="requesters", value=",".join(str(requesters)))
+        self._parser.set(self._admin, option="requesters", value=",".join([str(requester) for requester in requesters]))
     # end
 
     @sync
