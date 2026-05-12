@@ -73,6 +73,9 @@ class Request(commands.Cog):
             return
         # end
 
+        # sort requests by oldest
+        requests.sort(key=lambda x: x["createdOn"].timestamp())
+
         # use a list of column headers and items to calculate width of each column
         items = [["Request Id", "Requester Id", "Media Title", "Url", "Created On"]]
 
