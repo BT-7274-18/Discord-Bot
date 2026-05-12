@@ -173,6 +173,24 @@ def add_request(requesterId: int, mediaTitle: str, url: str, comment: str, creat
 # end
 
 
+def remove_request(id: int):
+    """
+    Removes a request from the requests file with the given id.
+
+    Arguments:
+        id (int): The id of the request to be removed.
+    """
+
+    requests = get_requests()
+
+    for i in range(len(requests)):
+        if requests[i]["requestId"] == id:
+            requests.pop(i)
+        # end
+    # end
+# end
+
+
 if __name__ == "__main__":
     pass
 # end
