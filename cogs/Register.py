@@ -8,7 +8,7 @@ class Register(commands.Cog):
         self.configs = Config()
     # end
 
-    def is_valid_user_id(self, userId: int) -> bool:
+    def is_valid_user_id(self, userId) -> bool:
         """
         Validates the given discord user id
 
@@ -27,7 +27,7 @@ class Register(commands.Cog):
     # end
 
     @commands.command()
-    async def register(self, ctx: commands.Context, id: int):
+    async def register(self, ctx: commands.Context, member: int | discord.Member):
         """
         Registers the given user as a requester.
 
@@ -36,9 +36,18 @@ class Register(commands.Cog):
         Arguments:
             id: The user id of the user you want to add as a requester.
         """
+        
+        userId: int
+        displayName: str | int
+        if isinstance(member, discord.Member):
+            userId = member.id
+            displayName = member.name
+        else:
+            userId = member
+            displayName = member
 
         # make sure the given user id is valid
-        if not self.is_valid_user_id(id):
+        if not self.is_valid_user_id(userId):
             # the given user id is invalid
             await ctx.send("Invalid user id.")
             return
@@ -48,13 +57,13 @@ class Register(commands.Cog):
         requesters = self.configs.get_requesters()
 
         # add the given user id to requesters list
-        requesters.append(id)
+        requesters.append(userId)
 
         # save the new requesters to file
         self.configs.set_requesters(requesters=requesters)
 
         # send confirmation message
-        await ctx.send(f"{id} added to requesters list.")
+        await ctx.send(f"{displayName} added to requesters list.")
     # end
 # end
 
