@@ -63,7 +63,7 @@ class Request(commands.Cog):
         # apply column width formatting to each item
         for i in range(len(colWidths)):
             for row in items:
-                row[i].ljust(colWidths[i])
+                row[i] = row[i].ljust(colWidths[i])
             # end
         # end
 
@@ -87,7 +87,5 @@ async def setup(bot: commands.Bot):
 
 
 if __name__ == "__main__":
-    requests = get_requests()
-
-    outputStrings = [" ".join(list(requests[0].keys()))]
+    pass
 # end
