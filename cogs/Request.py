@@ -32,8 +32,15 @@ class Request(commands.Cog):
     # end
     
     @requests.command(name="list")
-    async def requests_list(self, ctx: commands.Context):
-        """List all unfullfilled download requests."""
+    async def requests_list(self, ctx: commands.Context, id: int | None=None):
+        """
+        List all unfullfilled download requests. Or a specific request if an id is given.
+        
+        Useage: list [id]
+
+        Arguments:
+            id: The id of a specific request.
+        """
     
         # get all requests from file
         requests = get_requests()
@@ -42,6 +49,27 @@ class Request(commands.Cog):
         if requests == []:
             # there are no open requests
             await ctx.send("There are no open requests.")
+            return
+        # end
+
+        # check if request id is given 
+        if id is not None:
+            # request id is given
+
+            # find the request with the given id
+            request = 0
+            for req in requests:
+                if req["requestId"] == id: request = req
+            # end
+
+            # make sure the given id was valid
+            if request == 0:
+                await ctx.send("Invalid request id.")
+                return
+            # end
+
+            # display request information
+            await ctx.send(f"Requester Id: {request['requesterId']}\nMedia Title: {request['mediaTitle']}\nUrl: {request['url']}\nCreated On: {request['createdOn']}\nComment:\n{request['comment']}")
             return
         # end
 
