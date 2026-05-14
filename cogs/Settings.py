@@ -66,6 +66,19 @@ class Settings(commands.Cog):
         # end
     # end
 
+    async def cog_app_command_check(self, interaction: discord.Interaction) -> bool:
+        # get admins list
+        admins = self.configs.get_admin_list()
+
+        # always return true if there are no admins
+        if admins == []:
+            return True
+        # end
+
+        # only allow admins to change settings
+        return interaction.user.id in admins
+    # end
+
     async def is_valid_user_id(self, userId: int) -> bool:
         """
         Validates the given discord user ID.
