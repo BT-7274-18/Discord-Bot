@@ -263,7 +263,7 @@ class Config:
         Updates the list of admins.
 
         Arguments:
-            value (list[str]): A list of discord user id's.
+            value (list[int]): A list of discord user id's.
         """
 
         self._parser.set(section=self._admin, option="admins", value=",".join([str(admin) for admin in value]))

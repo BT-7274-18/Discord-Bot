@@ -461,7 +461,7 @@ class Settings(commands.Cog):
         # fetch the user object of each admin
         users = [await self.get_user_by_id(int(admin)) for admin in admins]
         # get the length of the longest user name for formatting
-        colWidth = max([len(user.display_name) for user in users if user is not None])
+        colWidth = max([len(user.display_name) for user in users if user is not None], 0)
 
         # display the list of admins
         displayString = []
