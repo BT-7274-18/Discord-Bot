@@ -309,23 +309,26 @@ class Settings(commands.Cog):
                 await ctx.message.attachments[0].save(writer)
             # end
 
-            # check if config schemas match
-            if not validate_schema(self.defaultConfig, "temp_config.ini"):
-                # schemas don't match, reject given config file
-                os.remove("temp_config.ini")
-                await ctx.send("Config schema doesn't match. Setings not imported.")
-                return
-            # end
-
-            # config schemas match. Override config file with given file
-            os.remove("config.ini")
-            os.rename("temp_config.ini", "config.ini")
-
-            await ctx.send("Settings imported.")
-
         except Exception as e:
             await ctx.send(f"Failed to save {ctx.message.attachments[0].filename} because of an error: {e}")
         # end
+
+        # check if config schemas match
+        if not self.configs.validate_schema("temp_config.ini"):
+            # schemas don't match, reject given config file
+            os.remove("temp_config.ini")
+            await ctx.send("Config schema doesn't match. Setings not imported.")
+            return
+        # end
+
+        # write new config data
+        self.configs.import_config("temp_config.ini")
+
+        # remove temp config file
+        os.remove("temp_config.ini")
+
+        # confirm successful config import
+        await ctx.send("Settings imported.")
     # end
 
     @commands.group(name="admins", invoke_without_command=True)

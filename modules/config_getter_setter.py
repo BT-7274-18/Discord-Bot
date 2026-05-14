@@ -110,6 +110,66 @@ class Config:
         return self._parser.get(section=section, option=setting)
     # end
 
+    def import_config(self, fileName: str):
+        """
+        Reads the contents of the given file and writes them to the config file.
+
+        Arguments:
+            fileName (str): The name of the file to import config data from.
+        """
+
+        # read config data on new config file
+        newConfigData: str
+        with open(fileName, "r") as reader:
+            newConfigData = "".join(reader.readlines())
+        # end
+
+        # write new config data to file
+        with open(self.fileName, "w") as writer:
+            writer.write(newConfigData)
+        # end
+    # end
+
+    def validate_schema(self, fileName: str) -> bool:
+        """
+        Validates the given ini file against the default config to make sure the schemas match.
+
+        Arguments:
+            fileName (str): The name of the ini file to varify the schema.
+
+        Returns:
+            True if the schemas match or false if they don't match.
+        """
+
+        # check if test file exists
+        if not os.path.exists(fileName):
+            # test file does not exist
+            return False
+        # end
+
+        # import test config file
+        testConfig = configparser.ConfigParser()
+        testConfig.read(fileName)
+
+        # check if all sections match
+        if self._parser.sections() != testConfig.sections():
+            # all sections don't match
+            return False
+        # end
+
+        # check if keys match
+        for section in self._parser.sections():
+            if self._parser[section].keys() != testConfig[section].keys():
+                #  keys for this section don't match match
+                return False
+            # end
+        # end
+
+        # all checks passed
+        # config schemas match
+        return True
+    # end
+
     @sync
     def get_sections(self) -> list[str]:
         """Gets all sections in the config file as a list."""
@@ -224,5 +284,5 @@ class Config:
 if __name__ == "__main__":
     config = Config()
 
-    print(config.get_requesters())
+    config.import_config("config.ini")
 # end
