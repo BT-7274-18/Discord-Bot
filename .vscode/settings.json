@@ -1,4 +1,4 @@
 {
-    "chat.disableAIFeatures": true,
+    "chat.disableAIFeatures": false,
     "file-template.templatesDir": "./.vscode/templates"
 }

@@ -501,7 +501,7 @@ class Settings(commands.Cog):
 
     @commands.group(name="admins", invoke_without_command=True)
     async def admins(self, ctx: commands.Context):
-        """Handels admin related settings."""
+        """Handels the admins list."""
         await ctx.send_help(ctx.command)
     # end
     
@@ -638,6 +638,158 @@ class Settings(commands.Cog):
         # display admins list
         await ctx.send(f"# Admins\n```{"\n".join(displayString)}```")
     # end
+
+    @commands.group(name="requesters", invoke_without_command=True)
+    async def requesters(self, ctx: commands.Context):
+        """Handels the requesters list."""
+        await ctx.send_help(ctx.command)
+    # end
+
+    @requesters.command(name="add")
+    async def requesters_add(self, ctx: commands.Context, member: int | discord.Member | None=None):
+        """
+        Registers the given user as a requester.
+
+        Useage: register <member>
+
+        Arguments:
+            member: An @ mention or a raw user id to remove from the requester list.
+        """
+
+        # make sure a user is given
+        if member is None:
+            await ctx.send_help(ctx.command)
+            return
+        # end
+        
+        userId: int
+        displayName: str | int
+        if isinstance(member, discord.Member):
+            userId = member.id
+            displayName = member.name
+        else:
+            userId = member
+            displayName = member
+        # end
+
+        # make sure the given user id is valid
+        if not await self.is_valid_user_id(userId):
+            # the given user id is invalid
+            await ctx.send("Invalid user id.")
+            return
+        # end
+
+        # get the current requesters
+        requesters = self.configs.get_requesters()
+
+        # make sure the given user is not already a requester
+        if userId in requesters:
+            # the given user is already on the requesters list
+            await ctx.send(f"{displayName} is already a requester.")
+            return
+        # end
+
+        # add the given user id to requesters list
+        requesters.append(userId)
+
+        # save the new requesters to file
+        self.configs.set_requesters(requesters=requesters)
+
+        # send confirmation message
+        await ctx.send(f"{displayName} added to requesters list.")
+    # end
+
+    @requesters.command(name="remove")
+    async def requesters_remove(self, ctx: commands.Context, member: int | discord.Member):
+        """
+        Removes the given requester from the list.
+
+        Useage: remove <member>
+
+        Arguments:
+            member: An @ mention or a raw user id to remove from the requester list.
+        """
+    
+        # make sure a user is given
+        if member is None:
+            await ctx.send_help(ctx.command)
+            return
+        # end
+
+        # convert member to user id
+        userId: int
+        displayName: str | int
+        if isinstance(member, discord.Member):
+            # given user is an @ mention
+
+            # convert discord member to user id
+            userId = member.id
+            # get member's name
+            displayName = member.name
+        else:
+            # the given user is a raw user id
+            userId = member
+            displayName = member
+        # end
+
+        # get the current list of requesters
+        requesters = self.configs.get_requesters()
+
+        # make sure the given user is on the requesters list
+        if not userId in requesters:
+            # the given user is not on the requesters list
+            await ctx.send(f"{displayName} is not on the requesters list.")
+            return
+        # end
+
+        # remove given user from the requesters list
+        requesters.remove(userId)
+
+        # save changes
+        self.configs.set_requesters(requesters=requesters)
+
+        # send confimation message
+        await ctx.send(f"{displayName} was removed from the requesters list.")
+    # end
+
+    @requesters.command(name="list")
+    async def requesters_list(self, ctx: commands.Context):
+        """List all the user that are allowed to make download requests."""
+    
+        # get all of the current requesters
+        requesters = self.configs.get_requesters()
+
+        # get a user object for each requester id
+        users = [await self.get_user_by_id(requesterId) for requesterId in requesters]
+        # convert user objects to usernames
+        users = [user.name if user is not None else "Null" for user in users]
+
+        # store strings for formatting later
+        outputStrings = [["Name", "Id"]]
+
+        # add each user name and id to output strings
+        for i in range(len(requesters)):
+            outputStrings.append([users[i], str(requesters[i])])
+        # end
+
+        # calculate the width each column needs to be
+        colWidths = []
+
+        for i in range(len(outputStrings[0])):
+            colWidths.append(max([len(row[i]) for row in outputStrings]))
+        # end
+
+        # apply column formatting to all objects
+        for i in range(len(colWidths)):
+            for row in outputStrings:
+                row[i] = row[i].ljust(colWidths[i])
+            # end
+        # end
+
+        # send list of requesters
+        await ctx.send(f"```{"\n".join(["  ".join(row) for row in outputStrings])}```")
+    # end
+    
 # end
 
 
