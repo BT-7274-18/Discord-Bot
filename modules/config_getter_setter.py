@@ -266,7 +266,7 @@ class Config:
             value (list[str]): A list of discord user id's.
         """
 
-        self._parser.set(section=self._admin, option="admins", value=",".join(str(value)))
+        self._parser.set(section=self._admin, option="admins", value=",".join([str(admin) for admin in value]))
     # end
     
     @sync
