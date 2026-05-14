@@ -621,7 +621,6 @@ class Settings(commands.Cog):
         # send list of requesters
         await ctx.send(f"```{"\n".join(["  ".join(row) for row in outputStrings])}```")
     # end
-    
 # end
 
 
