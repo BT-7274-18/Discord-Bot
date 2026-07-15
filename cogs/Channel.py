@@ -1,6 +1,7 @@
 from discord.ext import commands
 from modules.config_getter_setter import Config
 from urllib.parse import urlparse
+from modules.validate_permission import isAdmin
 import os, requests, shutil
 
 
@@ -171,7 +172,7 @@ class Channel(commands.Cog):
         """Manages channels on the watch list."""
         await ctx.send_help(ctx.command)
     # end
-
+    @isAdmin
     @channel.command(name="add")
     async def channel_add(self, ctx: commands.Context, 
         channelName: str | None=None,
